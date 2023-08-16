@@ -9,13 +9,12 @@ import java.io.IOException;
 import java.util.Objects;
 
 public class JShellEditorMain extends Application {
-    private Scene scene;
     private JShellEditorController controller;
 
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(this.getClass().getResource("jshelleditor.fxml")));
-        scene = new Scene(loader.load(), 600d, 600d);
+        Scene scene = new Scene(loader.load(), 600d, 600d);
         this.controller = loader.getController();
         this.controller.setupStageListener(stage);
         this.controller.getEditors().get(0).getCodeArea().requestFocus();

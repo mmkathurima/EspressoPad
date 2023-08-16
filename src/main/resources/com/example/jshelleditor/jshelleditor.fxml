@@ -3,6 +3,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Text?>
+<?import javafx.scene.web.WebView?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 <VBox fx:id="mainBox" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.jshelleditor.JShellEditorController">
@@ -38,10 +39,12 @@
         </Menu>
     </MenuBar>
     <SplitPane fx:id="splitPane">
-        <!-- TreeView -->
-        <TreeView fx:id="treeView"/>
+        <SplitPane orientation="VERTICAL">
+            <TreeView fx:id="treeView"/>
+            <WebView fx:id="documentationView"/>
+        </SplitPane>
         <VBox spacing="5">
-            <HBox style="-fx-padding: 5px 1em;-fx-border-insets: 5px;-fx-background-insets: 5px;">
+            <HBox style="-fx-padding: 5px 0 0 1em;-fx-border-insets: 5px;-fx-background-insets: 5px;">
                 <Button fx:id="run" text="Run">
                     <graphic>
                         <FontIcon iconLiteral="fas-caret-right" iconSize="20"/>

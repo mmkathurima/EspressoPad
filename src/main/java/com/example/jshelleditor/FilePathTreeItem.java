@@ -12,9 +12,8 @@ import java.io.File;
  * This class shall be a simple implementation of a TreeItem for
  * displaying a file system tree.
  * <p>
- * The idea for this class is taken from the Oracle API docs found at
- * http
- * ://docs.oracle.com/javafx/2/api/javafx/scene/control/TreeItem.html.
+ * The idea for this class is taken from the Oracle API docs found
+ * <a href="http://docs.oracle.com/javafx/2/api/javafx/scene/control/TreeItem.html">here</a>.
  * <p>
  * Basically the file sytsem will only be inspected once. If it changes
  * during runtime the whole tree would have to be rebuild. Event

@@ -19,6 +19,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -57,15 +58,21 @@ public class JShellEditorController implements Initializable {
     private SplitPane splitPane;
     @FXML
     private TreeView<File> treeView;
-    private List<TextEditor> editors = new ArrayList<>();
+    private final List<TextEditor> editors = new ArrayList<>();
+    private final List<TextEditorAutoComplete> tacs = new ArrayList<>();
     private TextEditor editor;
-    private List<TextEditorAutoComplete> tacs = new ArrayList<>();
+    private final Map<TextEditor, File> savedOpenFiles = new LinkedHashMap<>();
     private TextEditorAutoComplete tac;
     private ConsoleOutputStream out;
     private PrintStream printStream;
     private ConsoleInputStream in;
     private JShell shell;
-    private Map<TextEditor, File> savedOpenFiles = new LinkedHashMap<>();
+    @FXML
+    private WebView documentationView;
+
+    public WebView getDocumentationView() {
+        return this.documentationView;
+    }
 
     public List<TextEditor> getEditors() {
         return this.editors;
@@ -91,6 +98,7 @@ public class JShellEditorController implements Initializable {
         this.tabPane.getTabs().add(tab);
         this.editor = new TextEditor(this.tabPane.getTabs().get(this.tabPane.getTabs().indexOf(tab) - 1));
         this.tac = new TextEditorAutoComplete(this.editor);
+        this.tac.setController(this);
         this.tacs.add(this.tac);
         this.editors.add(this.editor);
         this.out = new ConsoleOutputStream(this.output);
@@ -206,8 +214,6 @@ public class JShellEditorController implements Initializable {
     private void closeAllPopups() {
         tacs.stream().filter(x -> x.getAutoCompletePopup() != null && x.getAutoCompletePopup().isShowing())
                 .forEach(x -> x.getAutoCompletePopup().hide());
-        tacs.stream().filter(x -> x.getDocsPopup() != null && x.getDocsPopup().isShowing())
-                .forEach(x -> x.getDocsPopup().hide());
     }
 
     // Tab that acts as a button and adds a new tab and selects it
@@ -224,6 +230,7 @@ public class JShellEditorController implements Initializable {
                     tabPane.getTabs().add(tabPane.getTabs().size() - 1, tab);
                     TextEditor textEditor = new TextEditor(tab);
                     TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor);
+                    autoComplete.setController(JShellEditorController.this);
                     tacs.add(autoComplete);
                     editors.add(textEditor);
                     // Selecting the tab before the button, which is the newly created one
@@ -502,7 +509,7 @@ public class JShellEditorController implements Initializable {
         dialog.setContentText("[Line] [:column]:");
         dialog.showAndWait().ifPresent(x -> {
             if (x.matches("^\\d+:\\d+$")) {
-                String[] goTo = Arrays.stream(x.split(":")).map(String::trim).toArray(String[]::new);
+                String[] goTo = x.split(":");
 
                 int row = Integer.parseInt(goTo[0]) - 1, col = Integer.parseInt(goTo[1]);
                 if (row < 0)

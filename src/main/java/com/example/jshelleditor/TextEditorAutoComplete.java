@@ -9,7 +9,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
-import javafx.scene.web.WebView;
 import javafx.stage.Popup;
 import jdk.jshell.JShell;
 import jdk.jshell.SnippetEvent;
@@ -17,19 +16,18 @@ import jdk.jshell.SourceCodeAnalysis;
 import org.fxmisc.richtext.model.TwoDimensional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class TextEditorAutoComplete {
     private final TextEditor textEditor;
     private String currentLine;
     private Popup autoCompletePopup;
-    private Popup docsPopup;
     private ListView<String> autocomplete;
     private List<String> keyphrases;
     private TwoDimensional.Position caretPos;
     private List<SnippetEvent> snippetEvents;
     private TextArea output;
+    private JShellEditorController controller;
 
     public TextEditorAutoComplete(TextEditor textEditor) {
         this.textEditor = textEditor;
@@ -40,12 +38,16 @@ public class TextEditorAutoComplete {
         this.output = output;
     }
 
-    public Popup getAutoCompletePopup() {
-        return this.autoCompletePopup;
+    public JShellEditorController getController() {
+        return this.controller;
     }
 
-    public Popup getDocsPopup() {
-        return this.docsPopup;
+    public void setController(JShellEditorController controller) {
+        this.controller = controller;
+    }
+
+    public Popup getAutoCompletePopup() {
+        return this.autoCompletePopup;
     }
 
 
@@ -98,26 +100,16 @@ public class TextEditorAutoComplete {
         this.textEditor.codeArea.requestFocus();
     }
 
-    private void showDocumentationPopup() {
-        this.caretPos = textEditor.codeArea.offsetToPosition(textEditor.codeArea.getCaretPosition(), TwoDimensional.Bias.Forward);
+    private void showDocumentation() {
+        this.caretPos = textEditor.codeArea.offsetToPosition(textEditor.codeArea.getCaretPosition(),
+                TwoDimensional.Bias.Forward);
         this.currentLine = textEditor.codeArea.getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
-        Optional<SourceCodeAnalysis.Documentation> documentation = this.textEditor.shell.sourceCodeAnalysis()
-                .documentation(currentLine, currentLine.length(), true)
-                .stream().findFirst();
-        if (this.docsPopup != null)
-            this.docsPopup.hide();
-        if (documentation.isPresent()) {
-            this.docsPopup = new Popup();
-            WebView webView = new WebView();
-            webView.getEngine().loadContent(String.format("<code>%s</code><br>%s",
-                    documentation.get().signature(), documentation.get().javadoc()));
-            webView.setMaxHeight(80);
 
-            this.docsPopup.getContent().add(webView);
-            this.docsPopup.show(this.textEditor.codeArea, this.textEditor.codeArea.getCaretBounds().get().getMaxX(),
-                    this.textEditor.codeArea.getCaretBounds().get().getMaxY());
-        }
-        this.textEditor.codeArea.requestFocus();
+        List<SourceCodeAnalysis.Documentation> docs = this.textEditor.shell.sourceCodeAnalysis()
+                .documentation(this.currentLine, this.currentLine.length(), true);
+        if (!docs.isEmpty())
+            this.getController().getDocumentationView().getEngine().loadContent(String.format("<code>%s</code><br>%s",
+                    docs.get(0).signature(), docs.get(0).javadoc()));
     }
 
     protected void initAutoCompleteEvents() {
@@ -158,15 +150,13 @@ public class TextEditorAutoComplete {
                 currentLine = textEditor.codeArea.getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
 
                 if (!currentLine.isBlank() && currentLine.charAt(currentLine.length() - 1) == '(') {
-                    showDocumentationPopup();
+                    showDocumentation();
                 } else if (caretPos.getMinor() > 0 && !currentLine.isBlank() && currentLine.charAt(currentLine.length() - 1) != '{') {
                     showAutoCompletePopup();
-                    showDocumentationPopup();
+                    showDocumentation();
                 } else {
                     if (autoCompletePopup != null)
                         autoCompletePopup.hide();
-                    if (docsPopup != null)
-                        docsPopup.hide();
                 }
             }
         });
@@ -191,15 +181,13 @@ public class TextEditorAutoComplete {
                     }
                 } else if (event.isControlDown() && event.getCode() == KeyCode.SPACE) {
                     showAutoCompletePopup();
-                    showDocumentationPopup();
+                    //showDocumentationPopup();
                 }
             }
         });
         this.textEditor.codeArea.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
-                if (docsPopup != null && docsPopup.isShowing())
-                    docsPopup.hide();
                 if (autoCompletePopup != null && autoCompletePopup.isShowing())
                     autoCompletePopup.hide();
             }
@@ -208,7 +196,7 @@ public class TextEditorAutoComplete {
             @Override
             public void handle(MouseEvent event) {
                 if (!textEditor.codeArea.getText().isBlank())
-                    showDocumentationPopup();
+                    showDocumentation();
             }
         });
     }
