@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Text?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<VBox fx:id="mainBox" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.example.jshelleditor.JShellEditorController">
+    <MenuBar>
+        <Menu text="File">
+            <MenuItem accelerator="Shortcut+N" onAction="#createNewFile" text="New"/>
+            <MenuItem accelerator="Shortcut+O" onAction="#openFile" text="Open"/>
+            <SeparatorMenuItem/>
+            <MenuItem accelerator="Shortcut+W" onAction="#closeFile" text="Close"/>
+            <SeparatorMenuItem/>
+            <MenuItem accelerator="Shortcut+S" onAction="#saveFile" text="Save"/>
+            <MenuItem accelerator="Shortcut+Shift+S" onAction="#saveFileAs" text="Save As"/>
+            <SeparatorMenuItem/>
+            <MenuItem accelerator="Shortcut+Q" onAction="#exit" text="Exit"/>
+        </Menu>
+        <Menu text="Edit">
+            <MenuItem accelerator="Shortcut+Z" onAction="#undo" text="Undo"/>
+            <MenuItem accelerator="Shortcut+Shift+Z" onAction="#redo" text="Redo"/>
+            <SeparatorMenuItem/>
+            <MenuItem accelerator="Shortcut+X" onAction="#cut" text="Cut"/>
+            <MenuItem accelerator="Shortcut+C" onAction="#copy" text="Copy"/>
+            <MenuItem accelerator="Shortcut+V" onAction="#paste" text="Paste"/>
+            <SeparatorMenuItem/>
+            <MenuItem accelerator="Shortcut+A" onAction="#selectAllText" text="Select All"/>
+            <MenuItem accelerator="Shortcut+G" onAction="#goToLine" text="Go to line"/>
+            <MenuItem accelerator="Shortcut+Alt+L" onAction="#reformat" text="Reformat"/>
+        </Menu>
+        <Menu text="Tools">
+            <MenuItem text="Run" onAction="#runCode"/>
+        </Menu>
+        <Menu text="Help">
+            <MenuItem text="About" onAction="#showAbout"/>
+        </Menu>
+    </MenuBar>
+    <SplitPane fx:id="splitPane">
+        <!-- TreeView -->
+        <TreeView fx:id="treeView"/>
+        <VBox spacing="5">
+            <HBox style="-fx-padding: 5px 1em;-fx-border-insets: 5px;-fx-background-insets: 5px;">
+                <Button fx:id="run" text="Run">
+                    <graphic>
+                        <FontIcon iconLiteral="fas-caret-right" iconSize="20"/>
+                    </graphic>
+                </Button>
+            </HBox>
+            <TabPane fx:id="tabPane"/>
+            <HBox spacing="20" HBox.hgrow="ALWAYS">
+                <Text text="Output"/>
+                <Button fx:id="clear" text="Clear">
+                    <graphic>
+                        <FontIcon iconLiteral="fas-trash-alt" iconSize="12"/>
+                    </graphic>
+                </Button>
+            </HBox>
+            <TextArea fx:id="output" editable="false" wrapText="true"/>
+        </VBox>
+    </SplitPane>
+</VBox>

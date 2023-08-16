@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Main-Class: com.example.jshelleditor.JShellEditorMain
+Class-Path: javafx-fxml-11-win.jar ikonli-core-12.3.1.jar javafx-graphic
+ s-11-win.jar reactfx-2.0-M5.jar flowless-0.7.0.jar wellbehavedfx-0.3.3.
+ jar ikonli-fontawesome5-pack-12.3.1.jar richtextfx-0.11.0.jar javafx-co
+ ntrols-11-win.jar ikonli-javafx-12.3.1.jar undofx-2.1.1.jar javafx-grap
+ hics-11.jar javafx-controls-11.jar javafx-base-11.jar javafx-base-11-wi
+ n.jar
+

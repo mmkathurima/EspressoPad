@@ -1,0 +1,38 @@
+.keyword {
+    -fx-fill: purple;
+    -fx-font-weight: bold;
+}
+
+.semicolon {
+    -fx-font-weight: bold;
+}
+
+.paren, .brace {
+    -fx-fill: firebrick;
+    -fx-font-weight: bold;
+}
+
+.bracket {
+    -fx-fill: darkgreen;
+    -fx-font-weight: bold;
+}
+
+.string {
+    -fx-fill: blue;
+}
+
+.comment {
+    -fx-fill: cadetblue;
+}
+
+.paragraph-box:has-caret {
+    -fx-background-color: #f2f9fc;
+}
+
+.paragraph-text {
+    -fx-tab-size: 4;
+}
+
+.lineno {
+    -fx-font-style: normal;
+}
