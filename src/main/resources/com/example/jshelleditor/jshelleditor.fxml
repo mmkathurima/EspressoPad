@@ -33,6 +33,7 @@
         </Menu>
         <Menu text="Tools">
             <MenuItem text="Run" onAction="#runCode"/>
+            <MenuItem text="Add dependencies" onAction="#manageArtifacts"/>
         </Menu>
         <Menu text="Help">
             <MenuItem text="About" onAction="#showAbout"/>

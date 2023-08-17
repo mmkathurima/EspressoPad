@@ -30,17 +30,11 @@
             <artifactId>richtextfx</artifactId>
             <version>0.11.0</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/net.unit8.erebus/erebus -->
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
+            <groupId>net.unit8.erebus</groupId>
+            <artifactId>erebus</artifactId>
+            <version>0.2.0</version>
         </dependency>
     </dependencies>
 

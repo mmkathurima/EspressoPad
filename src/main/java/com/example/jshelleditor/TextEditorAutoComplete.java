@@ -34,6 +34,10 @@ public class TextEditorAutoComplete {
         this.initAutoCompleteEvents();
     }
 
+    public List<String> getKeyphrases() {
+        return this.keyphrases;
+    }
+
     public void setOutput(TextArea output) {
         this.output = output;
     }
@@ -89,8 +93,7 @@ public class TextEditorAutoComplete {
         if (this.autoCompletePopup != null)
             this.autoCompletePopup.hide();
         if (!this.keyphrases.isEmpty()) {
-            this.autocomplete.getItems().clear();
-            this.autocomplete.getItems().addAll(this.keyphrases);
+            this.autocomplete.getItems().setAll(this.keyphrases);
             this.autoCompletePopup = new Popup();
             this.autocomplete.setMaxHeight(80);
             this.autoCompletePopup.getContent().add(this.autocomplete);

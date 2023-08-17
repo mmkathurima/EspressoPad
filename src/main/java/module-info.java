@@ -11,7 +11,13 @@ module com.example.jshelleditor {
     requires org.fxmisc.flowless;
     requires reactfx;
     requires javafx.web;
+    requires erebus;
+    requires aether.api;
 
     opens com.example.jshelleditor to javafx.fxml;
     exports com.example.jshelleditor;
+    exports com.example.jshelleditor.artifacts;
+    opens com.example.jshelleditor.artifacts to javafx.fxml;
+    exports com.example.jshelleditor.streams;
+    opens com.example.jshelleditor.streams to javafx.fxml;
 }

@@ -1,11 +1,11 @@
-package com.example.jshelleditor;
+package com.example.jshelleditor.streams;
 
 import javax.swing.JOptionPane;
 import java.io.IOException;
 import java.io.InputStream;
 
 public class ConsoleInputStream extends InputStream {
-    private StringBuilder buffer = new StringBuilder();
+    private final StringBuilder buffer = new StringBuilder();
 
     @Override
     public int read() throws IOException {

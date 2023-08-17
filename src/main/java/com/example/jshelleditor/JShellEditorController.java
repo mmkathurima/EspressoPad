@@ -1,5 +1,8 @@
 package com.example.jshelleditor;
 
+import com.example.jshelleditor.artifacts.ArtifactManager;
+import com.example.jshelleditor.streams.ConsoleInputStream;
+import com.example.jshelleditor.streams.ConsoleOutputStream;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -10,8 +13,6 @@ import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
@@ -21,10 +22,10 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 import jdk.jshell.JShell;
+import jdk.jshell.JShellException;
 import jdk.jshell.SnippetEvent;
 import jdk.jshell.SourceCodeAnalysis;
 import org.fxmisc.richtext.CodeArea;
@@ -39,7 +40,6 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Year;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -80,6 +80,10 @@ public class JShellEditorController implements Initializable {
 
     private TextEditor getCurrentTextEditor() {
         return this.editors.get(this.tabPane.getSelectionModel().getSelectedIndex() + 1);
+    }
+
+    public JShell getShell() {
+        return shell;
     }
 
     public void stop() throws IOException {
@@ -164,13 +168,19 @@ public class JShellEditorController implements Initializable {
 
             for (var snippet : snippets) {
                 // Check the status of the evaluation
+                String src = snippet.snippet().source().trim();
                 switch (snippet.status()) {
                     case VALID:
-                        System.out.printf("Code evaluation successful at `%s`.\n", snippet.snippet().source());
+                        System.out.printf("Code evaluation successful at \"%s\" ", src);
+                        if (snippet.value() != null) {
+                            System.out.printf("and returned value \"%s\"", snippet.value());
+                            this.printStream.printf("==> \"%s\"\n", snippet.value());
+                        }
+                        System.out.println();
                         break;
                     case REJECTED:
                         List<String> errors = shell.diagnostics(snippet.snippet())
-                                .map(x -> String.format("`%s` -> %s", snippet.snippet().source(),
+                                .map(x -> String.format("\"%s\" -> %s", src,
                                         x.getMessage(Locale.ENGLISH)))
                                 .collect(Collectors.toList());
                         System.err.printf("Code evaluation failed.\nDiagnostic info:\n%s\n", errors);
@@ -178,10 +188,15 @@ public class JShellEditorController implements Initializable {
                         break;
                 }
                 if (snippet.exception() != null) {
-                    System.err.printf("Code evaluation failed at `%s`.\n", snippet.snippet().source());
-                    this.printStream.printf("Code evaluation failed at `%s`\nDiagnostic info:\n",
-                            snippet.snippet().source());
+                    System.err.printf("Code evaluation failed at \"%s\".\n", src);
+                    this.printStream.printf("Code evaluation failed at \"%s\"\nDiagnostic info:\n", src);
                     snippet.exception().printStackTrace(this.printStream);
+                    snippet.exception().printStackTrace(System.err);
+                    try {
+                        throw snippet.exception();
+                    } catch (JShellException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
             if (!completion.remaining().isBlank())
@@ -467,6 +482,7 @@ public class JShellEditorController implements Initializable {
             Files.writeString(file.toPath(), this.getCurrentTextEditor().codeArea.getText());
             this.tabPane.getSelectionModel().getSelectedItem().setText(file.getName());
             this.savedOpenFiles.put(this.getCurrentTextEditor(), file);
+            this.refreshFileTree();
         }
     }
 
@@ -534,37 +550,25 @@ public class JShellEditorController implements Initializable {
         this.runCode();
     }
 
+    public void manageArtifacts(ActionEvent event) {
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    new ArtifactManager(JShellEditorController.this).start(new Stage());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+
     public void showAbout(ActionEvent event) {
-        Stage stage = new Stage();
-        TextArea textArea = new TextArea();
-        String title = ((Stage) this.tabPane.getScene().getWindow()).getTitle();
-        textArea.setWrapText(true);
-        textArea.setEditable(false);
-
-        Label productName = new Label(title);
-        productName.setFont(Font.font(Font.getDefault().getFamily(), FontWeight.EXTRA_BOLD, 36d));
-        productName.setAlignment(Pos.CENTER);
-
-        Label details = new Label(String.format("©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
-                System.getProperty("java.vm.vendor"), System.getProperty("java.vm.version"),
-                System.getProperty("os.arch"), System.getProperty("java.vm.name")));
-        details.setAlignment(Pos.CENTER);
-
-        Button closeBtn = new Button("OK");
-        closeBtn.setOnMouseClicked(e -> stage.close());
-
-        VBox vBox = new VBox(productName, details, textArea, closeBtn);
-        vBox.setStyle("-fx-padding: 5px 1em;-fx-border-insets: 5px;-fx-background-insets: 5px;");
-
-        stage.setScene(new Scene(vBox));
-        for (String key : TextEditorConstants.properties)
-            textArea.appendText(String.format("%s - %s\n", key, System.getProperty(key)));
-        textArea.positionCaret(0);
-
-        stage.initModality(Modality.WINDOW_MODAL);
-        stage.setResizable(false);
-        stage.initOwner(this.tabPane.getScene().getWindow());
-        stage.setTitle(String.format("About %s", title));
-        stage.show();
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                new About(tabPane.getScene().getWindow()).start(new Stage());
+            }
+        });
     }
 }

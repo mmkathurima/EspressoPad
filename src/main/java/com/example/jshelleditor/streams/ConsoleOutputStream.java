@@ -1,4 +1,4 @@
-package com.example.jshelleditor;
+package com.example.jshelleditor.streams;
 
 import javafx.application.Platform;
 import javafx.scene.control.TextArea;
