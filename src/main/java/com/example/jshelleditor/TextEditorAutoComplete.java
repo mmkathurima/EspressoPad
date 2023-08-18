@@ -34,8 +34,8 @@ public class TextEditorAutoComplete {
         this.initAutoCompleteEvents();
     }
 
-    public List<String> getKeyphrases() {
-        return this.keyphrases;
+    public JShell getShell() {
+        return this.textEditor.shell;
     }
 
     public void setOutput(TextArea output) {

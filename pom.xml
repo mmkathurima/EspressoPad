@@ -30,11 +30,10 @@
             <artifactId>richtextfx</artifactId>
             <version>0.11.0</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/net.unit8.erebus/erebus -->
         <dependency>
-            <groupId>net.unit8.erebus</groupId>
-            <artifactId>erebus</artifactId>
-            <version>0.2.0</version>
+            <groupId>com.squareup.tools.build</groupId>
+            <artifactId>maven-archeologist</artifactId>
+            <version>0.0.3.1</version>
         </dependency>
     </dependencies>
 

@@ -1,6 +1,7 @@
 package com.example.jshelleditor.artifacts;
 
 import com.example.jshelleditor.JShellEditorController;
+import com.example.jshelleditor.TextEditorAutoComplete;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
@@ -33,13 +34,16 @@ public class ArtifactManager extends Application {
                 if (artifacts != null && !artifacts.isBlank()) {
                     System.out.printf("Artifacts: %s\n", artifacts);
                     jController.getShell().addToClasspath(artifacts);
+                    for (TextEditorAutoComplete x : jController.getAutocompletes())
+                        x.getShell().addToClasspath(artifacts);
+
                     new Alert(Alert.AlertType.INFORMATION, "Artifacts added to classpath.").showAndWait();
                     stage.close();
                 }
             }
         });
         stage.setScene(scene);
-        stage.setTitle("Add dependencies");
+        stage.setTitle("Add dependencies (WORK IN PROGRESS)");
         stage.show();
     }
 }

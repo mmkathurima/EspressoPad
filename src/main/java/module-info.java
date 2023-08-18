@@ -11,8 +11,9 @@ module com.example.jshelleditor {
     requires org.fxmisc.flowless;
     requires reactfx;
     requires javafx.web;
-    requires erebus;
-    requires aether.api;
+    requires maven.archeologist;
+    requires kotlin.stdlib;
+    requires kotlin.stdlib.common;
 
     opens com.example.jshelleditor to javafx.fxml;
     exports com.example.jshelleditor;

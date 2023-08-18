@@ -82,6 +82,17 @@ public class JShellEditorController implements Initializable {
         return this.editors.get(this.tabPane.getSelectionModel().getSelectedIndex() + 1);
     }
 
+    private static String getFileExtension(String fileName) {
+        String extension = "";
+
+        int i = fileName.lastIndexOf('.');
+        int p = Math.max(fileName.lastIndexOf('/'), fileName.lastIndexOf('\\'));
+
+        if (i > p)
+            extension = fileName.substring(i + 1);
+        return extension;
+    }
+
     public JShell getShell() {
         return shell;
     }
@@ -156,53 +167,8 @@ public class JShellEditorController implements Initializable {
         this.setupContextMenu();
     }
 
-    private void runCode() {
-        output.setText("");
-        String code = this.getEditors()
-                .get(tabPane.getTabs().indexOf(tabPane.getSelectionModel().getSelectedItem()) + 1)
-                .getCodeArea().getText();
-        SourceCodeAnalysis.CompletionInfo completion = shell.sourceCodeAnalysis().analyzeCompletion(code);
-        shell.eval("import java.util.stream.*;import java.util.*;import java.io.*;");
-        while (!completion.source().isBlank()) {
-            List<SnippetEvent> snippets = shell.eval(completion.source());
-
-            for (var snippet : snippets) {
-                // Check the status of the evaluation
-                String src = snippet.snippet().source().trim();
-                switch (snippet.status()) {
-                    case VALID:
-                        System.out.printf("Code evaluation successful at \"%s\" ", src);
-                        if (snippet.value() != null) {
-                            System.out.printf("and returned value \"%s\"", snippet.value());
-                            this.printStream.printf("==> \"%s\"\n", snippet.value());
-                        }
-                        System.out.println();
-                        break;
-                    case REJECTED:
-                        List<String> errors = shell.diagnostics(snippet.snippet())
-                                .map(x -> String.format("\"%s\" -> %s", src,
-                                        x.getMessage(Locale.ENGLISH)))
-                                .collect(Collectors.toList());
-                        System.err.printf("Code evaluation failed.\nDiagnostic info:\n%s\n", errors);
-                        this.printStream.println(errors);
-                        break;
-                }
-                if (snippet.exception() != null) {
-                    System.err.printf("Code evaluation failed at \"%s\".\n", src);
-                    this.printStream.printf("Code evaluation failed at \"%s\"\nDiagnostic info:\n", src);
-                    snippet.exception().printStackTrace(this.printStream);
-                    snippet.exception().printStackTrace(System.err);
-                    try {
-                        throw snippet.exception();
-                    } catch (JShellException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-            if (!completion.remaining().isBlank())
-                completion = shell.sourceCodeAnalysis().analyzeCompletion(completion.remaining());
-            else break;
-        }
+    public List<TextEditorAutoComplete> getAutocompletes() {
+        return this.tacs;
     }
 
     public void setupStageListener(Stage stage) {
@@ -291,6 +257,55 @@ public class JShellEditorController implements Initializable {
         return FXCollections.observableArrayList(mFamilyList);
     }
 
+    private void runCode() {
+        output.setText("");
+        String code = this.getEditors()
+                .get(tabPane.getTabs().indexOf(tabPane.getSelectionModel().getSelectedItem()) + 1)
+                .getCodeArea().getText();
+        SourceCodeAnalysis.CompletionInfo completion = shell.sourceCodeAnalysis().analyzeCompletion(code);
+        shell.eval("import java.util.stream.*;import java.util.*;import java.io.*;");
+        while (!completion.source().isBlank()) {
+            List<SnippetEvent> snippets = shell.eval(completion.source());
+
+            for (var snippet : snippets) {
+                // Check the status of the evaluation
+                String src = snippet.snippet().source().trim();
+                switch (snippet.status()) {
+                    case VALID:
+                        System.out.printf("Code evaluation successful at \"%s\" ", src);
+                        if (snippet.value() != null) {
+                            System.out.printf("and returned value %s", snippet.value());
+                            //this.printStream.printf("\"%s\" ==> %s\n", src, snippet.value());
+                        }
+                        System.out.println();
+                        break;
+                    case REJECTED:
+                        List<String> errors = shell.diagnostics(snippet.snippet())
+                                .map(x -> String.format("\"%s\" -> %s", src,
+                                        x.getMessage(Locale.ENGLISH)))
+                                .collect(Collectors.toList());
+                        System.err.printf("Code evaluation failed.\nDiagnostic info:\n%s\n", errors);
+                        this.printStream.println(errors);
+                        break;
+                }
+                if (snippet.exception() != null) {
+                    System.err.printf("Code evaluation failed at \"%s\".\n", src);
+                    this.printStream.printf("Code evaluation failed at \"%s\"\nDiagnostic info:\n", src);
+                    snippet.exception().printStackTrace(this.printStream);
+                    snippet.exception().printStackTrace(System.err);
+                    try {
+                        throw snippet.exception();
+                    } catch (JShellException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+            if (!completion.remaining().isBlank())
+                completion = shell.sourceCodeAnalysis().analyzeCompletion(completion.remaining());
+            else break;
+        }
+    }
+
     private void setupContextMenu() {
         this.treeView.setCellFactory(new Callback<TreeView<File>, TreeCell<File>>() {
             @Override
@@ -302,7 +317,7 @@ public class JShellEditorController implements Initializable {
                         if (empty) {
                             setText(null);
                             setGraphic(null);
-                        } else {
+                        } else if (Objects.equals(getFileExtension(item.getName()), "jepl") || item.isDirectory()) {
                             setText(item.getName());
                             setGraphic(new FontIcon(item.isFile() ? "fas-file-code" : "fas-folder-open"));
                         }
@@ -325,23 +340,13 @@ public class JShellEditorController implements Initializable {
                 if (file != null) {
                     String fileName = file.getName();
                     String fileNameWOExt = fileName.replaceFirst("[.][^.]+$", "");
-                    String extension = "";
-
-                    int i = fileName.lastIndexOf('.');
-                    int p = Math.max(fileName.lastIndexOf('/'), fileName.lastIndexOf('\\'));
-
-                    if (i > p) {
-                        extension = fileName.substring(i + 1);
-                    }
-                    final String ext = extension;
 
                     TextInputDialog dialog = new TextInputDialog(fileNameWOExt);
                     dialog.setTitle(((Stage) tabPane.getScene().getWindow()).getTitle());
                     dialog.setHeaderText(String.format("Rename %s to:", fileName));
                     dialog.setContentText("New file name:");
                     dialog.showAndWait().ifPresent(x -> {
-                        String newFileName = String.format("%s.%s", x, ext);
-                        Path path = Path.of(file.getParent(), newFileName);
+                        Path path = Path.of(file.getParent(), String.format("%s.%s", x, getFileExtension(fileName)));
                         if (!Files.exists(path)) {
                             if (file.renameTo(path.toFile()))
                                 refreshFileTree();
@@ -443,7 +448,7 @@ public class JShellEditorController implements Initializable {
     public void openFile(ActionEvent event) throws IOException {
         File file = this.setupFileChooser(this.validateDefaultDirectory())
                 .showOpenDialog(this.mainBox.getScene().getWindow());
-        openFile(file);
+        this.openFile(file);
     }
 
     private void openFile(File file) throws IOException {
