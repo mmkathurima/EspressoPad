@@ -17,7 +17,13 @@ import jdk.jshell.SnippetEvent;
 import jdk.jshell.SourceCodeAnalysis;
 import org.fxmisc.richtext.model.TwoDimensional;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class TextEditorAutoComplete {
@@ -30,10 +36,16 @@ public class TextEditorAutoComplete {
     private List<SnippetEvent> snippetEvents;
     private TextArea output;
     private JShellEditorController controller;
+    private String shelvedFileName = null;
 
     public TextEditorAutoComplete(TextEditor textEditor) {
         this.textEditor = textEditor;
         this.initAutoCompleteEvents();
+    }
+
+    public TextEditorAutoComplete(TextEditor textEditor, String shelvedFileName) {
+        this(textEditor);
+        this.shelvedFileName = shelvedFileName;
     }
 
     public JShell getShell() {
@@ -88,6 +100,7 @@ public class TextEditorAutoComplete {
     }
 
     private void showAutoCompletePopup() {
+        String text = this.textEditor.getCodeArea().getText();
         this.keyphrases = this.textEditor.shell.sourceCodeAnalysis()
                 .completionSuggestions(currentLine, currentLine.length(), new int[1])
                 .stream().map(SourceCodeAnalysis.Suggestion::continuation)
@@ -106,15 +119,18 @@ public class TextEditorAutoComplete {
     }
 
     private void showDocumentation() {
-        this.caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
-                TwoDimensional.Bias.Forward);
-        this.currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
+        try (JShell docShell = JShell.create()) {
+            this.addArtifactsAndImports(docShell);
+            this.caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
+                    TwoDimensional.Bias.Forward);
+            this.currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
 
-        List<SourceCodeAnalysis.Documentation> docs = this.textEditor.shell.sourceCodeAnalysis()
-                .documentation(this.currentLine, this.currentLine.length(), true);
-        if (!docs.isEmpty())
-            this.getController().getDocumentationView().getEngine().loadContent(String.format("<code>%s</code><br>%s",
-                    docs.get(0).signature(), docs.get(0).javadoc()));
+            List<SourceCodeAnalysis.Documentation> docs = docShell.sourceCodeAnalysis()
+                    .documentation(this.currentLine, this.currentLine.length(), true);
+            if (!docs.isEmpty())
+                this.getController().getDocumentationView().getEngine().loadContent(String.format("<code>%s</code><br>%s",
+                        docs.get(0).signature(), docs.get(0).javadoc()));
+        }
     }
 
     protected void initAutoCompleteEvents() {
@@ -147,25 +163,40 @@ public class TextEditorAutoComplete {
         });
 
         this.textEditor.shell = JShell.create();
-        this.textEditor.shell.eval(new XmlHandler().parseImportXml()
-                .stream()
-                .map(imports -> String.format("import %s;", imports))
-                .collect(Collectors.joining()));
+        this.addArtifactsAndImports(this.textEditor.shell);
         this.textEditor.getCodeArea().textProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
                 caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(), TwoDimensional.Bias.Forward);
                 currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
+                Path shelfDir = Path.of(System.getProperty("user.dir"), "shelf");
+
+                if (!Objects.equals(newValue, oldValue))
+                    textEditor.getTab().setText(String.format("*%s", textEditor.getTab().getText()
+                            .replaceFirst("^\\*", "")));
+
+                try {
+                    if (!getController().getSavedOpenFiles().containsKey(textEditor) && shelvedFileName == null) {
+                        if (!shelfDir.toFile().exists())
+                            Files.createDirectory(shelfDir);
+                        shelvedFileName = UUID.randomUUID().toString();
+                        Files.writeString(shelfDir.resolve(shelvedFileName), textEditor.getCodeArea().getText(),
+                                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                    } else if (shelvedFileName != null && !shelvedFileName.isBlank()) {
+                        Files.writeString(shelfDir.resolve(shelvedFileName), textEditor.getCodeArea().getText(),
+                                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
 
                 if (!currentLine.isBlank() && currentLine.charAt(currentLine.length() - 1) == '(') {
-                    showDocumentation();
+                    //showDocumentation();
                 } else if (caretPos.getMinor() > 0 && !currentLine.isBlank() && currentLine.charAt(currentLine.length() - 1) != '{') {
                     showAutoCompletePopup();
-                    showDocumentation();
-                } else {
-                    if (autoCompletePopup != null)
-                        autoCompletePopup.hide();
-                }
+                    //showDocumentation();
+                } else if (autoCompletePopup != null)
+                    autoCompletePopup.hide();
             }
         });
         this.textEditor.getCodeArea().addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
@@ -207,6 +238,19 @@ public class TextEditorAutoComplete {
                     showDocumentation();
             }
         });
+    }
+
+    private void addArtifactsAndImports(JShell shell) {
+        XmlHandler handler = new XmlHandler();
+        if (handler.getArtifactFile().exists()) {
+            for (String s : handler.parseArtifactXml())
+                shell.addToClasspath(s);
+        }
+        if (handler.getImportsFile().exists())
+            shell.eval(handler.parseImportXml()
+                    .stream()
+                    .map(imports -> String.format("import %s;", imports))
+                    .collect(Collectors.joining()));
     }
 }
 

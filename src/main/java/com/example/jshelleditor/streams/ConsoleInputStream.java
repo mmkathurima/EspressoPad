@@ -1,5 +1,6 @@
 package com.example.jshelleditor.streams;
 
+import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,7 +11,19 @@ public class ConsoleInputStream extends InputStream {
     @Override
     public int read() throws IOException {
         if (this.buffer.length() == 0) {
-            this.buffer.append(JOptionPane.showInputDialog(null, "Enter your input:"));
+            JOptionPane optionPane = new JOptionPane("Enter input:", JOptionPane.QUESTION_MESSAGE,
+                    JOptionPane.OK_CANCEL_OPTION);
+            Object initial = optionPane.getInputValue();
+            optionPane.setWantsInput(true);
+            JDialog dialog = optionPane.createDialog("Awaiting input");
+            dialog.setAlwaysOnTop(true);
+            dialog.setVisible(true);
+            dialog.requestFocus();
+            dialog.dispose();
+            Object val = optionPane.getInputValue();
+            if (val == initial)
+                val = "";
+            this.buffer.append(val);
             this.buffer.append("\n");
         }
 

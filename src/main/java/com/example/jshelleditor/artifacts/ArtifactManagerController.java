@@ -22,12 +22,11 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 public class ArtifactManagerController implements Initializable {
-    public Button loadArtifacts;
     private final XmlHandler handler = new XmlHandler();
     @FXML
-    private Button saveImports;
+    Button loadArtifacts;
     @FXML
-    private ListView<String> importView;
+    Button saveImports;
     @FXML
     private Button removeImportBtn;
     @FXML
@@ -48,13 +47,19 @@ public class ArtifactManagerController implements Initializable {
     private TextField dependencyQuery;
     @FXML
     private Button dependencyResolver;
+    @FXML
+    ListView<String> importView;
 
-    public XmlHandler getHandler() {
+    XmlHandler getHandler() {
         return handler;
     }
 
-    public List<String> getArtifacts() {
+    List<String> getArtifacts() {
         return this.artifactView.getItems();
+    }
+
+    List<String> getImports() {
+        return this.importView.getItems();
     }
 
     @Override
@@ -131,9 +136,5 @@ public class ArtifactManagerController implements Initializable {
         String selected = this.importView.getSelectionModel().getSelectedItem();
         if (selected != null && !selected.isBlank())
             this.importView.getItems().remove(selected);
-    }
-
-    public void saveImports(ActionEvent event) {
-        this.handler.writeImportXml(this.importView.getItems());
     }
 }

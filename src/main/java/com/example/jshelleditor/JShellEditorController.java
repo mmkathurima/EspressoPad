@@ -39,6 +39,7 @@ import org.kordamp.ikonli.javafx.FontIcon;
 
 import javax.swing.filechooser.FileSystemView;
 import java.awt.Desktop;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -49,7 +50,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class JShellEditorController implements Initializable {
-    private final XmlHandler handler = new XmlHandler();
     @FXML
     private VBox outputPane;
     @FXML
@@ -68,6 +68,9 @@ public class JShellEditorController implements Initializable {
     private SplitPane splitPane;
     @FXML
     private TreeView<File> treeView;
+    private final XmlHandler handler = new XmlHandler();
+    @FXML
+    private WebView documentationView;
     private final List<TextEditor> editors = new ArrayList<>();
     private final List<TextEditorAutoComplete> tacs = new ArrayList<>();
     private TextEditor editor;
@@ -78,9 +81,8 @@ public class JShellEditorController implements Initializable {
     private ConsoleInputStream in;
     private JShell shell;
     @FXML
-    private WebView documentationView;
-    @FXML
     private VBox tabParent;
+    private File[] shelfChildren;
 
     public WebView getDocumentationView() {
         return this.documentationView;
@@ -88,6 +90,20 @@ public class JShellEditorController implements Initializable {
 
     public List<TextEditor> getEditors() {
         return this.editors;
+    }
+
+    static boolean compareFilesByLine(Path path1, Path path2) {
+        try (BufferedReader bf1 = Files.newBufferedReader(path1);
+             BufferedReader bf2 = Files.newBufferedReader(path2)) {
+            for (String line1, line2; (line1 = bf1.readLine()) != null; ) {
+                line2 = bf2.readLine();
+                if (!Objects.equals(line1, line2))
+                    return false;
+            }
+            return bf2.readLine() == null;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private TextEditor getCurrentTextEditor() {
@@ -116,68 +132,8 @@ public class JShellEditorController implements Initializable {
         this.shell.close();
     }
 
-    @Override
-    @FXML
-    public void initialize(URL url, ResourceBundle resourceBundle) {
-        Tab tab = this.newTabButton(this.tabPane);
-        this.splitPane.setDividerPosition(0, .3);
-        this.splitPane.setPrefHeight(this.mainBox.getPrefHeight());
-        this.tabPane.getTabs().add(tab);
-        this.editor = new TextEditor(this.tabPane.getTabs().get(this.tabPane.getTabs().indexOf(tab) - 1));
-        this.handler.writeImportXml(List.of("java.util.stream.*", "java.util.*", "java.io.*"));
-        this.tac = new TextEditorAutoComplete(this.editor);
-        this.tac.setController(this);
-        this.tacs.add(this.tac);
-        this.editors.add(this.editor);
-        this.out = new ConsoleOutputStream(this.output);
-        this.printStream = new PrintStream(this.out);
-        this.in = new ConsoleInputStream();
-        this.shell = JShell.builder().out(this.printStream).err(this.printStream).in(this.in).build();
-
-        //TODO: Change this to be more cross platform
-        /*
-        ObservableList<String> mono = this.getMonospaceFonts();
-        System.out.printf("Available monospaced fonts: %s\n", mono);
-        if (mono.contains("Consolas"))
-            this.output.setFont(Font.font("Consolas", 14d));
-        else this.output.setFont(Font.font(mono.get(0), 14d));
-        */
-        this.output.setFont(Font.font("Consolas", 14d));
-
-        this.run.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                runCode();
-            }
-        });
-
-        this.clear.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                output.clear();
-            }
-        });
-        this.treeView.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                if (event.getClickCount() == 2) {
-                    TreeItem<File> treeItem = treeView.getSelectionModel().getSelectedItem();
-                    if (treeItem != null) {
-                        File file = treeItem.getValue();
-                        if (file != null) {
-                            try {
-                                openFile(file);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        this.refreshFileTree();
-        this.setupContextMenu();
+    public Map<TextEditor, File> getSavedOpenFiles() {
+        return this.savedOpenFiles;
     }
 
     public List<TextEditorAutoComplete> getAutocompletes() {
@@ -226,11 +182,102 @@ public class JShellEditorController implements Initializable {
                 .forEach(x -> x.getAutoCompletePopup().hide());
     }
 
+    @Override
+    @FXML
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+        Tab tab = this.newTabButton(this.tabPane);
+        this.splitPane.setDividerPosition(0, .3);
+        this.splitPane.setPrefHeight(this.mainBox.getPrefHeight());
+        this.tabPane.getTabs().add(tab);
+        this.editor = new TextEditor(this.tabPane.getTabs().get(this.tabPane.getTabs().indexOf(tab) - 1));
+        this.handler.writeImportXml(List.of("java.util.stream.*", "java.util.*", "java.io.*"));
+        this.tac = new TextEditorAutoComplete(this.editor);
+        this.tac.setController(this);
+        this.tacs.add(this.tac);
+        this.editors.add(this.editor);
+        this.out = new ConsoleOutputStream(this.output);
+        this.printStream = new PrintStream(this.out);
+        this.in = new ConsoleInputStream();
+        this.shell = JShell.builder().out(this.printStream).err(this.printStream).in(this.in).build();
+
+        //TODO: Change this to be more cross platform
+        /*
+        ObservableList<String> mono = this.getMonospaceFonts();
+        System.out.printf("Available monospaced fonts: %s\n", mono);
+        if (mono.contains("Consolas"))
+            this.output.setFont(Font.font("Consolas", 14d));
+        else this.output.setFont(Font.font(mono.get(0), 14d));
+        */
+        this.output.setFont(Font.font("Consolas", 14d));
+
+        if (this.handler.getArtifactFile().exists()) {
+            for (String s : this.handler.parseArtifactXml())
+                this.shell.addToClasspath(s);
+        }
+
+        this.run.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                runCode();
+            }
+        });
+
+        this.clear.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                output.clear();
+            }
+        });
+        this.treeView.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                if (event.getClickCount() == 2) {
+                    TreeItem<File> treeItem = treeView.getSelectionModel().getSelectedItem();
+                    if (treeItem != null) {
+                        File file = treeItem.getValue();
+                        if (file != null) {
+                            try {
+                                openFile(file);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        this.refreshFileTree();
+        this.setupContextMenu();
+
+        try {
+            File shelf = Path.of(System.getProperty("user.dir"), "shelf").toFile();
+            this.shelfChildren = shelf.listFiles();
+            if (shelf.exists() && this.shelfChildren != null && this.shelfChildren.length > 0) {
+                for (int i = 0; i < this.shelfChildren.length; i++) {
+                    File shelfFile = this.shelfChildren[i];
+                    tab = new Tab(String.format("*Shelved %d", i + 1));
+                    this.tabPane.getTabs().add(this.tabPane.getTabs().size() - 1, tab);
+                    TextEditor textEditor = new TextEditor(tab);
+                    textEditor.getCodeArea().replaceText(Files.readString(shelfFile.toPath()));
+                    TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor, shelfFile.getName());
+                    autoComplete.setController(this);
+                    this.tacs.add(autoComplete);
+                    this.editors.add(textEditor);
+                    this.setTabEvents(textEditor, autoComplete);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     // Tab that acts as a button and adds a new tab and selects it
     private Tab newTabButton(TabPane tabPane) {
         Tab addTab = new Tab(); // You can replace the text with an icon
         addTab.setGraphic(new FontIcon("fas-plus"));
         addTab.setClosable(false);
+
         tabPane.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Tab>() {
             @Override
             public void changed(ObservableValue<? extends Tab> observable, Tab oldTab, Tab newTab) {
@@ -245,24 +292,7 @@ public class JShellEditorController implements Initializable {
                     editors.add(textEditor);
                     // Selecting the tab before the button, which is the newly created one
                     tabPane.getSelectionModel().select(tabPane.getTabs().size() - 2);
-                    tab.setOnCloseRequest(new EventHandler<Event>() {
-                        @Override
-                        public void handle(Event event) {
-                            try {
-                                if (tabPane.getTabs().size() == 2) {
-                                    event.consume();
-                                    return;
-                                }
-                                textEditor.getSubscriber().unsubscribe();
-                                textEditor.stop();
-                                editors.remove(textEditor);
-                                tacs.remove(autoComplete);
-                                savedOpenFiles.remove(textEditor);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    });
+                    setTabEvents(textEditor, autoComplete);
                 }
             }
         });
@@ -470,6 +500,27 @@ public class JShellEditorController implements Initializable {
         return path;
     }
 
+    private void setTabEvents(TextEditor textEditor, TextEditorAutoComplete autoComplete) {
+        textEditor.getTab().setOnCloseRequest(new EventHandler<Event>() {
+            @Override
+            public void handle(Event event) {
+                try {
+                    if (tabPane.getTabs().size() == 2) {
+                        event.consume();
+                        return;
+                    }
+                    textEditor.getSubscriber().unsubscribe();
+                    textEditor.stop();
+                    editors.remove(textEditor);
+                    tacs.remove(autoComplete);
+                    savedOpenFiles.remove(textEditor);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+
     private FileChooser setupFileChooser(Path path) {
         FileChooser chooser = new FileChooser();
         chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JEPL Files", "*.jepl"));
@@ -507,9 +558,10 @@ public class JShellEditorController implements Initializable {
 
     public void saveFile(ActionEvent event) throws IOException {
         TextEditor textEditor = this.getCurrentTextEditor();
-        if (this.savedOpenFiles.containsKey(textEditor))
+        if (this.savedOpenFiles.containsKey(textEditor)) {
             Files.writeString(this.savedOpenFiles.get(textEditor).toPath(), textEditor.getCodeArea().getText());
-        else this.saveFileAs(null);
+            textEditor.getTab().setText(textEditor.getTab().getText().replaceFirst("^\\*", ""));
+        } else this.saveFileAs(null);
     }
 
     public void saveFileAs(ActionEvent event) throws IOException {
@@ -519,6 +571,12 @@ public class JShellEditorController implements Initializable {
             Files.writeString(file.toPath(), this.getCurrentTextEditor().getCodeArea().getText());
             this.tabPane.getSelectionModel().getSelectedItem().setText(file.getName());
             this.savedOpenFiles.put(this.getCurrentTextEditor(), file);
+            if (this.shelfChildren != null && this.shelfChildren.length > 0) {
+                for (File x : this.shelfChildren) {
+                    if (compareFilesByLine(x.toPath(), file.toPath()) && x.delete())
+                        break;
+                }
+            }
             this.refreshFileTree();
         }
     }

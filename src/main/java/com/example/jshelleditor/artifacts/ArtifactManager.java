@@ -13,6 +13,7 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class ArtifactManager extends Application {
     private final JShellEditorController jController;
@@ -44,8 +45,24 @@ public class ArtifactManager extends Application {
 
                     controller.getHandler().writeArtifactXml(artifacts);
                     new Alert(Alert.AlertType.INFORMATION, "Artifacts added to classpath.").showAndWait();
-                    stage.close();
+                    //stage.close();
                 }
+            }
+        });
+        this.controller.saveImports.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                String importList = controller.getImports()
+                        .stream()
+                        .map(x -> String.format("import %s;", x))
+                        .collect(Collectors.joining());
+                jController.getShell().eval(String.format("import %s", importList));
+
+                for (TextEditorAutoComplete x : jController.getAutocompletes())
+                    x.getShell().eval(String.format("import %s;", importList));
+
+                controller.getHandler().writeImportXml(controller.importView.getItems());
+                new Alert(Alert.AlertType.INFORMATION, "Imports added.").showAndWait();
             }
         });
         stage.setScene(scene);

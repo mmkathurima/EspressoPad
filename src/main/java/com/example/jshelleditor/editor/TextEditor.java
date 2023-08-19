@@ -25,16 +25,18 @@ public class TextEditor {
     private final ExecutorService executor;
     private Subscription subscriber;
     protected JShell shell;
+    private final Tab tab;
 
     public TextEditor(Tab tab) {
+        this.tab = tab;
         this.codeArea = new CodeArea();
         this.executor = Executors.newSingleThreadExecutor();
-        this.getCodeArea().setParagraphGraphicFactory(LineNumberFactory.get(getCodeArea()));
-        this.setSubscriber(getCodeArea().multiPlainChanges()
+        this.codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
+        this.setSubscriber(codeArea.multiPlainChanges()
                 .successionEnds(Duration.ofMillis(200))
                 .retainLatestUntilLater(executor)
                 .supplyTask(this::computeHighlightingAsync)
-                .awaitLatest(getCodeArea().multiPlainChanges())
+                .awaitLatest(codeArea.multiPlainChanges())
                 .filterMap(t -> {
                     if (t.isSuccess())
                         return Optional.of(t.get());
@@ -47,11 +49,15 @@ public class TextEditor {
         // call when no longer need it: `cleanupWhenFinished.unsubscribe();`
 
         //this.codeArea.replaceText(0, 0, TextEditorConstants.sampleCode);
-        this.getCodeArea().setStyle("-fx-font-family: consolas, monospace; -fx-font-size: 11pt;");
-        this.getCodeArea().setId("code-area");
-        this.getCodeArea().setWrapText(true);
-        tab.setContent(new StackPane(new VirtualizedScrollPane<>(this.getCodeArea())));
+        this.codeArea.setStyle("-fx-font-family: consolas, monospace; -fx-font-size: 11pt;");
+        this.codeArea.setId("code-area");
+        this.codeArea.setWrapText(true);
+        tab.setContent(new StackPane(new VirtualizedScrollPane<>(this.codeArea)));
         tab.getTabPane().getStylesheets().add(this.getClass().getResource("java-keywords.css").toExternalForm());
+    }
+
+    public Tab getTab() {
+        return this.tab;
     }
 
     public void stop() throws IOException {
@@ -96,7 +102,7 @@ public class TextEditor {
     }
 
     private Task<StyleSpans<Collection<String>>> computeHighlightingAsync() {
-        String text = getCodeArea().getText();
+        String text = codeArea.getText();
         Task<StyleSpans<Collection<String>>> task = new Task<StyleSpans<Collection<String>>>() {
             @Override
             protected StyleSpans<Collection<String>> call() throws Exception {
@@ -108,6 +114,6 @@ public class TextEditor {
     }
 
     private void applyHighlighting(StyleSpans<Collection<String>> highlighting) {
-        getCodeArea().setStyleSpans(0, highlighting);
+        codeArea.setStyleSpans(0, highlighting);
     }
 }

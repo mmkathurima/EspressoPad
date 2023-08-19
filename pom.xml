@@ -33,7 +33,7 @@
         <dependency>
             <groupId>com.squareup.tools.build</groupId>
             <artifactId>maven-archeologist</artifactId>
-            <version>0.0.3.1</version>
+            <version>0.0.10</version>
         </dependency>
     </dependencies>
 

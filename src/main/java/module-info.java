@@ -7,8 +7,9 @@ module com.example.jshelleditor {
 
     requires jdk.jshell;
     requires java.desktop;
-    requires org.fxmisc.richtext;
     requires org.fxmisc.flowless;
+    requires org.fxmisc.richtext;
+    requires org.fxmisc.undo;
     requires reactfx;
     requires javafx.web;
     requires maven.archeologist;

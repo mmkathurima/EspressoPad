@@ -45,12 +45,12 @@ public class XmlHandler {
 
     private List<String> checkDuplicateChildNodes(List<String> elements, Node node) {
         NodeList importChildren = node.getChildNodes();
-        List<String> filteredImports = new ArrayList<>();
-        for (int i = 0; i < importChildren.getLength(); i++) {
-            String textContent = importChildren.item(i).getTextContent();
-            if (textContent != null && !textContent.isBlank() && !elements.contains(textContent))
-                filteredImports.add(textContent);
-        }
+        List<String> importStream = new ArrayList<>();
+        for (int i = 0; i < importChildren.getLength(); i++)
+            importStream.add(importChildren.item(i).getTextContent());
+
+        List<String> filteredImports = new ArrayList<>(elements);
+        filteredImports.removeAll(importStream);
         return filteredImports;
     }
 
@@ -112,29 +112,36 @@ public class XmlHandler {
         try {
             DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = builderFactory.newDocumentBuilder();
-            Document document = builder.newDocument();
-            Node node = document.getElementsByTagName("imports").item(0);
+            Document document;
 
-            if (this.getImportsFile().exists() && node != null) {
+            if (this.getImportsFile().exists()) {
                 document = builder.parse(this.getImportsFile());
+                Node node = document.getElementsByTagName("imports").item(0);
 
-                for (String importText : this.checkDuplicateChildNodes(importList, node)) {
-                    Element anImport = document.createElement("import");
-                    anImport.appendChild(document.createTextNode(importText));
-                    node.appendChild(anImport);
+                if (node != null) {
+                    List<String> distinctImports = this.checkDuplicateChildNodes(importList, node);
+                    for (String importText : distinctImports) {
+                        Element anImport = document.createElement("import");
+                        anImport.appendChild(document.createTextNode(importText));
+                        node.appendChild(anImport);
+                    }
+                    if (!distinctImports.isEmpty())
+                        this.saveXmlChanges(this.importsFile, document);
+                    return;
                 }
-            } else {
-                Element root = document.createElement("component");
-                document.appendChild(root);
+            }
 
-                Element imports = document.createElement("imports");
-                root.appendChild(imports);
+            document = builder.newDocument();
+            Element root = document.createElement("component");
+            document.appendChild(root);
 
-                for (String importText : importList) {
-                    Element anImport = document.createElement("import");
-                    anImport.appendChild(document.createTextNode(importText));
-                    imports.appendChild(anImport);
-                }
+            Element imports = document.createElement("imports");
+            root.appendChild(imports);
+
+            for (String importText : importList) {
+                Element anImport = document.createElement("import");
+                anImport.appendChild(document.createTextNode(importText));
+                imports.appendChild(anImport);
             }
 
             this.saveXmlChanges(this.importsFile, document);

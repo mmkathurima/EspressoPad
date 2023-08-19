@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Text?>
@@ -52,6 +53,9 @@
                             <FontIcon iconLiteral="fas-caret-right" iconSize="20"/>
                         </graphic>
                     </Button>
+                    <padding>
+                        <Insets bottom="5.0" left="10.0" top="5.0"/>
+                    </padding>
                 </HBox>
                 <TabPane fx:id="tabPane"/>
             </VBox>
@@ -63,6 +67,9 @@
                             <FontIcon iconLiteral="fas-trash-alt" iconSize="12"/>
                         </graphic>
                     </Button>
+                    <padding>
+                        <Insets bottom="5.0" left="10.0" top="5.0"/>
+                    </padding>
                 </HBox>
                 <TextArea fx:id="output" editable="false" wrapText="true"/>
             </VBox>
