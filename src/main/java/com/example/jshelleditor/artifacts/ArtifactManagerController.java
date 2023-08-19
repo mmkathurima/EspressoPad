@@ -1,5 +1,6 @@
 package com.example.jshelleditor.artifacts;
 
+import com.example.jshelleditor.xml.XmlHandler;
 import com.squareup.tools.maven.resolution.ArtifactResolver;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -17,26 +18,43 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.ResourceBundle;
 
 public class ArtifactManagerController implements Initializable {
     public Button loadArtifacts;
+    private final XmlHandler handler = new XmlHandler();
     @FXML
-    private Button jarFinder;
+    private Button saveImports;
+    @FXML
+    private ListView<String> importView;
+    @FXML
+    private Button removeImportBtn;
+    @FXML
+    private Button addImportBtn;
+    @FXML
+    private Button removeArtifactBtn;
+    @FXML
+    private TextField importStmt;
     @FXML
     private RadioButton toggleJarFinder;
     @FXML
     private RadioButton toggleSearch;
     @FXML
-    private ListView<String> results;
+    private Button jarFinder;
     @FXML
-    private Button dependencySearcher;
+    private ListView<String> artifactView;
     @FXML
     private TextField dependencyQuery;
-    private String artifacts;
+    @FXML
+    private Button dependencyResolver;
 
-    public String getArtifacts() {
-        return this.artifacts;
+    public XmlHandler getHandler() {
+        return handler;
+    }
+
+    public List<String> getArtifacts() {
+        return this.artifactView.getItems();
     }
 
     @Override
@@ -52,9 +70,21 @@ public class ArtifactManagerController implements Initializable {
             @Override
             public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
                 dependencyQuery.setDisable(!newValue);
-                dependencySearcher.setDisable(!newValue);
+                dependencyResolver.setDisable(!newValue);
             }
         });
+
+        this.importView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+                removeImportBtn.setVisible(newValue != null);
+            }
+        });
+        if (this.handler.getArtifactFile().exists())
+            this.artifactView.getItems().addAll(this.handler.parseArtifactXml());
+
+        if (this.handler.getImportsFile().exists())
+            this.importView.getItems().addAll(this.handler.parseImportXml());
     }
 
     public void pickJar(ActionEvent event) {
@@ -62,22 +92,48 @@ public class ArtifactManagerController implements Initializable {
         chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JAR Files", "*.jar"));
         File file = chooser.showOpenDialog(this.jarFinder.getScene().getWindow());
         if (file != null) {
-            this.artifacts = file.getPath();
-            this.results.getItems().add(this.artifacts);
+            this.artifactView.getItems().add(file.getPath());
             this.loadArtifacts.setVisible(true);
+            this.removeArtifactBtn.setVisible(true);
+        } else {
+            this.loadArtifacts.setVisible(false);
+            this.removeArtifactBtn.setVisible(false);
         }
     }
 
-    public void searchDependencies(ActionEvent event) {
+    public void resolveDependencies(ActionEvent event) {
         try {
             ArtifactResolver resolver = new ArtifactResolver(); // creates a resolver with repo list defaulting to Maven Central.
             Pair<Path, Path> dep = resolver.download(dependencyQuery.getText());
-            this.artifacts = dep.getSecond().toString();
-            this.results.getItems().addAll(this.artifacts);
+            this.artifactView.getItems().add(dep.getSecond().toString());
             this.loadArtifacts.setVisible(true);
+            this.removeArtifactBtn.setVisible(true);
         } catch (IOException e) {
-            loadArtifacts.setVisible(false);
+            this.loadArtifacts.setVisible(false);
+            this.removeArtifactBtn.setVisible(false);
             throw new RuntimeException(e);
         }
+    }
+
+    public void removeArtifact(ActionEvent event) {
+        String selected = this.artifactView.getSelectionModel().getSelectedItem();
+        if (selected != null && !selected.isBlank())
+            this.artifactView.getItems().remove(selected);
+    }
+
+    public void addImport(ActionEvent event) {
+        String importStmtText = this.importStmt.getText();
+        if (!importStmtText.isBlank())
+            this.importView.getItems().add(importStmtText);
+    }
+
+    public void removeImport(ActionEvent event) {
+        String selected = this.importView.getSelectionModel().getSelectedItem();
+        if (selected != null && !selected.isBlank())
+            this.importView.getItems().remove(selected);
+    }
+
+    public void saveImports(ActionEvent event) {
+        this.handler.writeImportXml(this.importView.getItems());
     }
 }

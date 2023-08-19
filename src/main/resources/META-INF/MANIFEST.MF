@@ -1,23 +1,14 @@
 Manifest-Version: 1.0
 Main-Class: com.example.jshelleditor.JShellEditorMain
-Class-Path: wagon-ssh-3.4.1.jar jsch-0.1.55.jar ikonli-javafx-12.3.1.jar
-  javafx-fxml-11-win.jar slf4j-api-1.6.2.jar plexus-interpolation-1.21.j
- ar jsch.agentproxy.sshagent-0.0.9.jar aether-api-1.1.0.jar flowless-0.7
- .0.jar plexus-utils-3.0.22.jar javafx-base-11-win.jar jsch.agentproxy.c
- onnector-factory-0.0.9.jar aether-util-1.1.0.jar wagon-provider-api-1.0
- .jar maven-aether-provider-3.3.9.jar richtextfx-0.11.0.jar jsch.agentpr
- oxy.jsch-0.0.9.jar httpcore-4.3.2.jar jsch.agentproxy.usocket-jna-0.0.9
- .jar maven-artifact-3.3.9.jar commons-lang3-3.4.jar jna-platform-4.1.0.
- jar javafx-graphics-11-win.jar javafx-base-11.jar maven-model-3.3.9.jar
-  javafx-controls-11-win.jar jna-4.1.0.jar jsch.agentproxy.usocket-nc-0.
- 0.9.jar undofx-2.1.1.jar aether-transport-http-1.1.0.jar jsch.agentprox
- y.core-0.0.9.jar plexus-interactivity-api-1.0.jar aether-connector-basi
- c-1.1.0.jar maven-builder-support-3.3.9.jar ikonli-core-12.3.1.jar mave
- n-model-builder-3.3.9.jar aether-spi-1.1.0.jar ikonli-fontawesome5-pack
- -12.3.1.jar commons-codec-1.6.jar aether-impl-1.1.0.jar httpclient-4.3.
- 5.jar jcl-over-slf4j-1.6.2.jar jsch.agentproxy.pageant-0.0.9.jar plexus
- -component-annotations-1.6.jar javafx-controls-11.jar aether-transport-
- wagon-1.1.0.jar wagon-ssh-common-3.4.1.jar erebus-0.2.0.jar wellbehaved
- fx-0.3.3.jar reactfx-2.0-M5.jar maven-repository-metadata-3.3.9.jar gua
- va-18.0.jar javafx-graphics-11.jar aether-transport-file-1.1.0.jar
+Class-Path: okio-2.4.3.jar ikonli-core-12.3.1.jar ikonli-javafx-12.3.1.j
+ ar javafx-fxml-11-win.jar maven-artifact-3.6.3.jar flowless-0.7.0.jar c
+ ommons-lang3-3.8.1.jar javafx-base-11-win.jar maven-model-3.6.3.jar iko
+ nli-fontawesome5-pack-12.3.1.jar plexus-interpolation-1.25.jar richtext
+ fx-0.11.0.jar okhttp-4.4.1.jar maven-builder-support-3.6.3.jar plexus-u
+ tils-3.2.1.jar javafx-graphics-11-win.jar maven-model-builder-3.6.3.jar
+  javafx-base-11.jar javafx-controls-11.jar javafx-controls-11-win.jar k
+ otlin-stdlib-1.3.61.jar annotations-13.0.jar undofx-2.1.1.jar maven-arc
+ heologist-0.0.3.1.jar javax.inject-1.jar wellbehavedfx-0.3.3.jar org.ec
+ lipse.sisu.inject-0.3.4.jar reactfx-2.0-M5.jar javafx-graphics-11.jar k
+ otlin-stdlib-common-1.3.61.jar
 

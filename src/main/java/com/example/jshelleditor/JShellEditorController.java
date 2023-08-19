@@ -1,8 +1,11 @@
 package com.example.jshelleditor;
 
 import com.example.jshelleditor.artifacts.ArtifactManager;
+import com.example.jshelleditor.editor.TextEditor;
+import com.example.jshelleditor.editor.TextEditorAutoComplete;
 import com.example.jshelleditor.streams.ConsoleInputStream;
 import com.example.jshelleditor.streams.ConsoleOutputStream;
+import com.example.jshelleditor.xml.XmlHandler;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -13,6 +16,7 @@ import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
@@ -22,6 +26,7 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 import jdk.jshell.JShell;
@@ -44,6 +49,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class JShellEditorController implements Initializable {
+    private final XmlHandler handler = new XmlHandler();
+    @FXML
+    private VBox outputPane;
+    @FXML
+    private SplitPane mainSplit;
     @FXML
     private VBox mainBox;
     @FXML
@@ -69,6 +79,8 @@ public class JShellEditorController implements Initializable {
     private JShell shell;
     @FXML
     private WebView documentationView;
+    @FXML
+    private VBox tabParent;
 
     public WebView getDocumentationView() {
         return this.documentationView;
@@ -108,10 +120,11 @@ public class JShellEditorController implements Initializable {
     @FXML
     public void initialize(URL url, ResourceBundle resourceBundle) {
         Tab tab = this.newTabButton(this.tabPane);
-        this.mainBox.setPrefSize(600d, 400d);
         this.splitPane.setDividerPosition(0, .3);
+        this.splitPane.setPrefHeight(this.mainBox.getPrefHeight());
         this.tabPane.getTabs().add(tab);
         this.editor = new TextEditor(this.tabPane.getTabs().get(this.tabPane.getTabs().indexOf(tab) - 1));
+        this.handler.writeImportXml(List.of("java.util.stream.*", "java.util.*", "java.io.*"));
         this.tac = new TextEditorAutoComplete(this.editor);
         this.tac.setController(this);
         this.tacs.add(this.tac);
@@ -121,15 +134,15 @@ public class JShellEditorController implements Initializable {
         this.in = new ConsoleInputStream();
         this.shell = JShell.builder().out(this.printStream).err(this.printStream).in(this.in).build();
 
-        this.editor.codeArea.setPrefWidth(this.mainBox.getPrefWidth());
-        this.editor.codeArea.setPrefHeight(this.mainBox.getPrefHeight());
-
         //TODO: Change this to be more cross platform
+        /*
         ObservableList<String> mono = this.getMonospaceFonts();
         System.out.printf("Available monospaced fonts: %s\n", mono);
         if (mono.contains("Consolas"))
             this.output.setFont(Font.font("Consolas", 14d));
-        else this.output.setFont(Font.font(mono.get(new Random().nextInt(mono.size())), 14d));
+        else this.output.setFont(Font.font(mono.get(0), 14d));
+        */
+        this.output.setFont(Font.font("Consolas", 14d));
 
         this.run.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
             @Override
@@ -172,6 +185,7 @@ public class JShellEditorController implements Initializable {
     }
 
     public void setupStageListener(Stage stage) {
+        Rectangle2D screenBounds = Screen.getPrimary().getBounds();
         stage.focusedProperty().addListener(new ChangeListener<Boolean>() {
             @Override
             public void changed(ObservableValue<? extends Boolean> observable, Boolean hidden, Boolean shown) {
@@ -190,6 +204,21 @@ public class JShellEditorController implements Initializable {
                 splitPane.setDividerPosition(0, .2);
             }
         });
+        stage.heightProperty().addListener(new ChangeListener<Number>() {
+            @Override
+            public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+                splitPane.setPrefHeight(newValue.doubleValue());
+                outputPane.setMaxHeight(.5 * newValue.doubleValue());
+                outputPane.setMinHeight(.2 * newValue.doubleValue());
+                output.setMaxHeight(outputPane.getMaxHeight());
+                output.setPrefHeight(.3 * screenBounds.getHeight());
+            }
+        });
+        this.splitPane.setPrefHeight(stage.getHeight());
+        this.tabParent.setPrefHeight(.75 * screenBounds.getHeight());
+        this.output.setPrefHeight(.3 * screenBounds.getHeight());
+        for (TextEditor textEditor : this.editors)
+            textEditor.getCodeArea().setPrefHeight(.9 * this.tabParent.getPrefHeight());
     }
 
     private void closeAllPopups() {
@@ -258,12 +287,15 @@ public class JShellEditorController implements Initializable {
     }
 
     private void runCode() {
-        output.setText("");
+        this.output.setText("");
         String code = this.getEditors()
                 .get(tabPane.getTabs().indexOf(tabPane.getSelectionModel().getSelectedItem()) + 1)
                 .getCodeArea().getText();
         SourceCodeAnalysis.CompletionInfo completion = shell.sourceCodeAnalysis().analyzeCompletion(code);
-        shell.eval("import java.util.stream.*;import java.util.*;import java.io.*;");
+        this.shell.eval(handler.parseImportXml()
+                .stream()
+                .map(imports -> String.format("import %s;", imports))
+                .collect(Collectors.joining()));
         while (!completion.source().isBlank()) {
             List<SnippetEvent> snippets = shell.eval(completion.source());
 
@@ -273,7 +305,7 @@ public class JShellEditorController implements Initializable {
                 switch (snippet.status()) {
                     case VALID:
                         System.out.printf("Code evaluation successful at \"%s\" ", src);
-                        if (snippet.value() != null) {
+                        if (snippet.value() != null && !snippet.value().isBlank()) {
                             System.out.printf("and returned value %s", snippet.value());
                             //this.printStream.printf("\"%s\" ==> %s\n", src, snippet.value());
                         }
@@ -456,7 +488,7 @@ public class JShellEditorController implements Initializable {
             if (!this.savedOpenFiles.containsValue(file)) {
                 this.createNewFile(null);
                 TextEditor textEditor = this.getCurrentTextEditor();
-                textEditor.codeArea.replaceText(Files.readString(file.toPath()));
+                textEditor.getCodeArea().replaceText(Files.readString(file.toPath()));
                 this.tabPane.getSelectionModel().getSelectedItem().setText(file.getName());
                 this.savedOpenFiles.put(textEditor, file);
             } else
@@ -476,7 +508,7 @@ public class JShellEditorController implements Initializable {
     public void saveFile(ActionEvent event) throws IOException {
         TextEditor textEditor = this.getCurrentTextEditor();
         if (this.savedOpenFiles.containsKey(textEditor))
-            Files.writeString(this.savedOpenFiles.get(textEditor).toPath(), textEditor.codeArea.getText());
+            Files.writeString(this.savedOpenFiles.get(textEditor).toPath(), textEditor.getCodeArea().getText());
         else this.saveFileAs(null);
     }
 
@@ -484,7 +516,7 @@ public class JShellEditorController implements Initializable {
         File file = this.setupFileChooser(this.validateDefaultDirectory())
                 .showSaveDialog(this.mainBox.getScene().getWindow());
         if (file != null) {
-            Files.writeString(file.toPath(), this.getCurrentTextEditor().codeArea.getText());
+            Files.writeString(file.toPath(), this.getCurrentTextEditor().getCodeArea().getText());
             this.tabPane.getSelectionModel().getSelectedItem().setText(file.getName());
             this.savedOpenFiles.put(this.getCurrentTextEditor(), file);
             this.refreshFileTree();
@@ -496,31 +528,31 @@ public class JShellEditorController implements Initializable {
     }
 
     public void undo(ActionEvent event) {
-        this.getCurrentTextEditor().codeArea.undo();
+        this.getCurrentTextEditor().getCodeArea().undo();
     }
 
     public void redo(ActionEvent event) {
-        this.getCurrentTextEditor().codeArea.redo();
+        this.getCurrentTextEditor().getCodeArea().redo();
     }
 
     public void cut(ActionEvent event) {
-        this.getCurrentTextEditor().codeArea.cut();
+        this.getCurrentTextEditor().getCodeArea().cut();
     }
 
     public void copy(ActionEvent event) {
-        this.getCurrentTextEditor().codeArea.copy();
+        this.getCurrentTextEditor().getCodeArea().copy();
     }
 
     public void paste(ActionEvent event) {
-        this.getCurrentTextEditor().codeArea.paste();
+        this.getCurrentTextEditor().getCodeArea().paste();
     }
 
     public void selectAllText(ActionEvent event) {
-        this.getCurrentTextEditor().codeArea.selectAll();
+        this.getCurrentTextEditor().getCodeArea().selectAll();
     }
 
     public void goToLine(ActionEvent event) {
-        CodeArea codeArea = this.getCurrentTextEditor().codeArea;
+        CodeArea codeArea = this.getCurrentTextEditor().getCodeArea();
         TwoDimensional.Position caretPos = codeArea.offsetToPosition(codeArea.getCaretPosition(),
                 TwoDimensional.Bias.Forward);
         TextInputDialog dialog = new TextInputDialog(String.format("%d:%d", caretPos.getMajor() + 1,

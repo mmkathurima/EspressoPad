@@ -1,4 +1,4 @@
-package com.example.jshelleditor;
+package com.example.jshelleditor.editor;
 
 import java.util.regex.Pattern;
 
@@ -37,7 +37,7 @@ public class TextEditorConstants {
 
     protected static final String sampleCode = "IntStream stream = IntStream.rangeClosed(0, 10)\n" +
             "stream.forEach(x -> System.out.println(x));";
-    protected static final String[] properties = {
+    public static final String[] properties = {
             "java.home", "java.vendor", "java.version", "sun.desktop", "os.name", "os.version",
             "os.arch", "user.name", "user.dir", "user.home", "user.language", "sun.cpu.isalist",
             "sun.arch.data.model", "java.io.tmpdir", "sun.jnu.encoding", "sun.boot.library.path",

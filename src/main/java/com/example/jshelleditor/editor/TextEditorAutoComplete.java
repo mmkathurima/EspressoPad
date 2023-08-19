@@ -1,5 +1,7 @@
-package com.example.jshelleditor;
+package com.example.jshelleditor.editor;
 
+import com.example.jshelleditor.JShellEditorController;
+import com.example.jshelleditor.xml.XmlHandler;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
@@ -80,7 +82,7 @@ public class TextEditorAutoComplete {
             String suggestion = suggestions.stream().filter(x -> x.equals(this.autocomplete.getSelectionModel().getSelectedItem()))
                     .findFirst().orElse(suggestions.get(0));
             String prefix = this.findCommonPrefix(currentText, suggestion);
-            this.textEditor.codeArea.insertText(this.textEditor.codeArea.getCaretPosition(), suggestion.substring(prefix.length()));
+            this.textEditor.getCodeArea().insertText(this.textEditor.getCodeArea().getCaretPosition(), suggestion.substring(prefix.length()));
         }
         //this.codeArea.appendText(currentText);
     }
@@ -97,16 +99,16 @@ public class TextEditorAutoComplete {
             this.autoCompletePopup = new Popup();
             this.autocomplete.setMaxHeight(80);
             this.autoCompletePopup.getContent().add(this.autocomplete);
-            this.autoCompletePopup.show(this.textEditor.codeArea, this.textEditor.codeArea.getCaretBounds().get().getMaxX(),
-                    this.textEditor.codeArea.getCaretBounds().get().getMaxY());
+            this.autoCompletePopup.show(this.textEditor.getCodeArea(), this.textEditor.getCodeArea().getCaretBounds().get().getMaxX(),
+                    this.textEditor.getCodeArea().getCaretBounds().get().getMaxY());
         }
-        this.textEditor.codeArea.requestFocus();
+        this.textEditor.getCodeArea().requestFocus();
     }
 
     private void showDocumentation() {
-        this.caretPos = textEditor.codeArea.offsetToPosition(textEditor.codeArea.getCaretPosition(),
+        this.caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
                 TwoDimensional.Bias.Forward);
-        this.currentLine = textEditor.codeArea.getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
+        this.currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
 
         List<SourceCodeAnalysis.Documentation> docs = this.textEditor.shell.sourceCodeAnalysis()
                 .documentation(this.currentLine, this.currentLine.length(), true);
@@ -145,12 +147,15 @@ public class TextEditorAutoComplete {
         });
 
         this.textEditor.shell = JShell.create();
-        this.textEditor.shell.eval("import java.util.stream.*;import java.util.*;import java.io.*;");
-        this.textEditor.codeArea.textProperty().addListener(new ChangeListener<String>() {
+        this.textEditor.shell.eval(new XmlHandler().parseImportXml()
+                .stream()
+                .map(imports -> String.format("import %s;", imports))
+                .collect(Collectors.joining()));
+        this.textEditor.getCodeArea().textProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                caretPos = textEditor.codeArea.offsetToPosition(textEditor.codeArea.getCaretPosition(), TwoDimensional.Bias.Forward);
-                currentLine = textEditor.codeArea.getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
+                caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(), TwoDimensional.Bias.Forward);
+                currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
 
                 if (!currentLine.isBlank() && currentLine.charAt(currentLine.length() - 1) == '(') {
                     showDocumentation();
@@ -163,13 +168,13 @@ public class TextEditorAutoComplete {
                 }
             }
         });
-        this.textEditor.codeArea.addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
+        this.textEditor.getCodeArea().addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent event) {
                 if (event.getCode() == KeyCode.ENTER) {
-                    caretPos = textEditor.codeArea.offsetToPosition(textEditor.codeArea.getCaretPosition(), TwoDimensional.Bias.Forward);
+                    caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(), TwoDimensional.Bias.Forward);
                     if (caretPos.getMinor() == 0) {
-                        String prevLine = textEditor.codeArea.getText(caretPos.getMajor() - ((caretPos.getMajor() > 0) ? 1 : 0));
+                        String prevLine = textEditor.getCodeArea().getText(caretPos.getMajor() - ((caretPos.getMajor() > 0) ? 1 : 0));
                         SourceCodeAnalysis.CompletionInfo completionInfo = textEditor.shell.sourceCodeAnalysis().analyzeCompletion(prevLine);
                         switch (completionInfo.completeness()) {
                             case UNKNOWN:
@@ -188,17 +193,17 @@ public class TextEditorAutoComplete {
                 }
             }
         });
-        this.textEditor.codeArea.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
+        this.textEditor.getCodeArea().addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
                 if (autoCompletePopup != null && autoCompletePopup.isShowing())
                     autoCompletePopup.hide();
             }
         });
-        this.textEditor.codeArea.addEventHandler(MouseEvent.MOUSE_RELEASED, new EventHandler<MouseEvent>() {
+        this.textEditor.getCodeArea().addEventHandler(MouseEvent.MOUSE_RELEASED, new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
-                if (!textEditor.codeArea.getText().isBlank())
+                if (!textEditor.getCodeArea().getText().isBlank())
                     showDocumentation();
             }
         });

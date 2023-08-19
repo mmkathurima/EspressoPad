@@ -1,5 +1,6 @@
 package com.example.jshelleditor;
 
+import com.example.jshelleditor.editor.TextEditor;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;

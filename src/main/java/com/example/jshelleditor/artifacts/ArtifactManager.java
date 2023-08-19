@@ -1,7 +1,7 @@
 package com.example.jshelleditor.artifacts;
 
 import com.example.jshelleditor.JShellEditorController;
-import com.example.jshelleditor.TextEditorAutoComplete;
+import com.example.jshelleditor.editor.TextEditorAutoComplete;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
@@ -11,6 +11,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 public class ArtifactManager extends Application {
@@ -30,13 +31,18 @@ public class ArtifactManager extends Application {
         this.controller.loadArtifacts.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
-                String artifacts = controller.getArtifacts();
-                if (artifacts != null && !artifacts.isBlank()) {
+                List<String> artifacts = controller.getArtifacts();
+                if (artifacts != null && !artifacts.isEmpty()) {
                     System.out.printf("Artifacts: %s\n", artifacts);
-                    jController.getShell().addToClasspath(artifacts);
-                    for (TextEditorAutoComplete x : jController.getAutocompletes())
-                        x.getShell().addToClasspath(artifacts);
+                    for (String artifact : artifacts)
+                        jController.getShell().addToClasspath(artifact);
 
+                    for (TextEditorAutoComplete x : jController.getAutocompletes()) {
+                        for (String artifact : artifacts)
+                            x.getShell().addToClasspath(artifact);
+                    }
+
+                    controller.getHandler().writeArtifactXml(artifacts);
                     new Alert(Alert.AlertType.INFORMATION, "Artifacts added to classpath.").showAndWait();
                     stage.close();
                 }

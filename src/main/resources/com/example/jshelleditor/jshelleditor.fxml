@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Text?>
 <?import javafx.scene.web.WebView?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 <VBox xmlns:fx="http://javafx.com/fxml/1" fx:id="mainBox" xmlns="http://javafx.com/javafx/11.0.14-internal"
-      fx:controller="com.example.jshelleditor.JShellEditorController">
+      fx:controller="com.example.jshelleditor.JShellEditorController" prefWidth="600" prefHeight="500">
     <MenuBar>
         <Menu text="File">
             <MenuItem accelerator="Shortcut+N" onAction="#createNewFile" text="New"/>
@@ -45,27 +44,28 @@
             <TreeView fx:id="treeView"/>
             <WebView fx:id="documentationView"/>
         </SplitPane>
-        <VBox spacing="5">
-            <HBox style="-fx-padding: 5px 0 0 1em;-fx-border-insets: 5px;-fx-background-insets: 5px;">
-                <Button fx:id="run" text="Run">
-                    <graphic>
-                        <FontIcon iconLiteral="fas-caret-right" iconSize="20"/>
-                    </graphic>
-                </Button>
-            </HBox>
-            <TabPane fx:id="tabPane"/>
-            <HBox spacing="20" HBox.hgrow="ALWAYS">
-                <Text text="Output"/>
-                <Button fx:id="clear" text="Clear">
-                    <graphic>
-                        <FontIcon iconLiteral="fas-trash-alt" iconSize="12"/>
-                    </graphic>
-                </Button>
-                <VBox.margin>
-                    <Insets left="15.0"/>
-                </VBox.margin>
-            </HBox>
-            <TextArea fx:id="output" editable="false" wrapText="true"/>
-        </VBox>
+        <SplitPane fx:id="mainSplit" dividerPositions="0.7" orientation="VERTICAL">
+            <VBox fx:id="tabParent">
+                <HBox>
+                    <Button fx:id="run" text="Run">
+                        <graphic>
+                            <FontIcon iconLiteral="fas-caret-right" iconSize="20"/>
+                        </graphic>
+                    </Button>
+                </HBox>
+                <TabPane fx:id="tabPane"/>
+            </VBox>
+            <VBox fx:id="outputPane">
+                <HBox spacing="20">
+                    <Text text="Output"/>
+                    <Button fx:id="clear" text="Clear">
+                        <graphic>
+                            <FontIcon iconLiteral="fas-trash-alt" iconSize="12"/>
+                        </graphic>
+                    </Button>
+                </HBox>
+                <TextArea fx:id="output" editable="false" wrapText="true"/>
+            </VBox>
+        </SplitPane>
     </SplitPane>
 </VBox>
