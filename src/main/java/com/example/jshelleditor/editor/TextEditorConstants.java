@@ -11,10 +11,11 @@ public class TextEditorConstants {
             "enum", "extends", "final", "finally", "float",
             "for", "goto", "if", "implements", "import",
             "instanceof", "int", "interface", "long", "native",
-            "new", "package", "private", "protected", "public",
-            "return", "short", "static", "strictfp", "super",
-            "switch", "synchronized", "this", "throw", "throws",
-            "transient", "try", "var", "void", "volatile", "while"
+            "new", "null", "package", "private", "protected",
+            "public", "return", "short", "static", "strictfp",
+            "super", "switch", "synchronized", "this", "throw",
+            "throws", "transient", "try", "var", "void",
+            "volatile", "while"
     };
 
     private static final String KEYWORD_PATTERN = "\\b(" + String.join("|", KEYWORDS) + ")\\b";

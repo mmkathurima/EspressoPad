@@ -68,11 +68,11 @@ public class TextEditor {
     private static StyleSpans<Collection<String>> computeHighlighting(String text) {
         Matcher matcher = TextEditorConstants.PATTERN.matcher(text);
         int lastKwEnd = 0;
-        StyleSpansBuilder<Collection<String>> spansBuilder
-                = new StyleSpansBuilder<>();
+        StyleSpansBuilder<Collection<String>> spansBuilder = new StyleSpansBuilder<>();
         while (matcher.find()) {
             String styleClass; /* never happens */
-            if (matcher.group("KEYWORD") != null) styleClass = "keyword";
+            if (matcher.group("KEYWORD") != null)
+                styleClass = "keyword";
             else styleClass = matcher.group("PAREN") != null ? "paren" :
                     matcher.group("BRACE") != null ? "brace" :
                             matcher.group("BRACKET") != null ? "bracket" :

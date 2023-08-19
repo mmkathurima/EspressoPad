@@ -68,9 +68,11 @@ public class JShellEditorController implements Initializable {
     private SplitPane splitPane;
     @FXML
     private TreeView<File> treeView;
-    private final XmlHandler handler = new XmlHandler();
     @FXML
     private WebView documentationView;
+    private final XmlHandler handler = new XmlHandler();
+    @FXML
+    private VBox tabParent;
     private final List<TextEditor> editors = new ArrayList<>();
     private final List<TextEditorAutoComplete> tacs = new ArrayList<>();
     private TextEditor editor;
@@ -80,9 +82,8 @@ public class JShellEditorController implements Initializable {
     private PrintStream printStream;
     private ConsoleInputStream in;
     private JShell shell;
-    @FXML
-    private VBox tabParent;
     private File[] shelfChildren;
+    private File currentFile = null;
 
     public WebView getDocumentationView() {
         return this.documentationView;
@@ -286,7 +287,7 @@ public class JShellEditorController implements Initializable {
                     // Adding new tab before the "button" tab
                     tabPane.getTabs().add(tabPane.getTabs().size() - 1, tab);
                     TextEditor textEditor = new TextEditor(tab);
-                    TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor);
+                    TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor, currentFile);
                     autoComplete.setController(JShellEditorController.this);
                     tacs.add(autoComplete);
                     editors.add(textEditor);
@@ -341,15 +342,16 @@ public class JShellEditorController implements Initializable {
                         }
                         System.out.println();
                         break;
-                    case REJECTED:
+                    case REJECTED: //Compile time errors
                         List<String> errors = shell.diagnostics(snippet.snippet())
-                                .map(x -> String.format("\"%s\" -> %s", src,
+                                .map(x -> String.format("\n\"%s\" -> %s\n", src,
                                         x.getMessage(Locale.ENGLISH)))
                                 .collect(Collectors.toList());
                         System.err.printf("Code evaluation failed.\nDiagnostic info:\n%s\n", errors);
                         this.printStream.println(errors);
                         break;
                 }
+                //Runtime errors
                 if (snippet.exception() != null) {
                     System.err.printf("Code evaluation failed at \"%s\".\n", src);
                     this.printStream.printf("Code evaluation failed at \"%s\"\nDiagnostic info:\n", src);
@@ -484,10 +486,6 @@ public class JShellEditorController implements Initializable {
         this.treeView.getRoot().setExpanded(true);
     }
 
-    public void createNewFile(ActionEvent event) {
-        this.tabPane.getSelectionModel().select(this.tabPane.getTabs().size() - 1);
-    }
-
     private Path validateDefaultDirectory() {
         Path path = Path.of(FileSystemView.getFileSystemView().getDefaultDirectory().getPath(), "JShellEditor");
         if (!Files.exists(path)) {
@@ -528,6 +526,19 @@ public class JShellEditorController implements Initializable {
         return chooser;
     }
 
+    private void createNewFile(File file) {
+        this.currentFile = file;
+        this.createNewFile((ActionEvent) null);
+        if (this.getCurrentTextEditor().getTab().getText()
+                .replaceFirst("^\\*", "")
+                .equals(file.getName()))
+            this.currentFile = null;
+    }
+
+    public void createNewFile(ActionEvent event) {
+        this.tabPane.getSelectionModel().select(this.tabPane.getTabs().size() - 1);
+    }
+
     public void openFile(ActionEvent event) throws IOException {
         File file = this.setupFileChooser(this.validateDefaultDirectory())
                 .showOpenDialog(this.mainBox.getScene().getWindow());
@@ -537,7 +548,7 @@ public class JShellEditorController implements Initializable {
     private void openFile(File file) throws IOException {
         if (file != null) {
             if (!this.savedOpenFiles.containsValue(file)) {
-                this.createNewFile(null);
+                this.createNewFile(file);
                 TextEditor textEditor = this.getCurrentTextEditor();
                 textEditor.getCodeArea().replaceText(Files.readString(file.toPath()));
                 this.tabPane.getSelectionModel().getSelectedItem().setText(file.getName());
@@ -638,7 +649,6 @@ public class JShellEditorController implements Initializable {
     }
 
     public void reformat(ActionEvent event) {
-
     }
 
     public void runCode(ActionEvent event) {

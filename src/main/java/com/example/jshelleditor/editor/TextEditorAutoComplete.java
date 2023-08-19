@@ -17,6 +17,7 @@ import jdk.jshell.SnippetEvent;
 import jdk.jshell.SourceCodeAnalysis;
 import org.fxmisc.richtext.model.TwoDimensional;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,6 +38,7 @@ public class TextEditorAutoComplete {
     private TextArea output;
     private JShellEditorController controller;
     private String shelvedFileName = null;
+    private File savedFile = null;
 
     public TextEditorAutoComplete(TextEditor textEditor) {
         this.textEditor = textEditor;
@@ -46,6 +48,11 @@ public class TextEditorAutoComplete {
     public TextEditorAutoComplete(TextEditor textEditor, String shelvedFileName) {
         this(textEditor);
         this.shelvedFileName = shelvedFileName;
+    }
+
+    public TextEditorAutoComplete(TextEditor textEditor, File savedFile) {
+        this(textEditor);
+        this.savedFile = savedFile;
     }
 
     public JShell getShell() {
@@ -128,8 +135,9 @@ public class TextEditorAutoComplete {
             List<SourceCodeAnalysis.Documentation> docs = docShell.sourceCodeAnalysis()
                     .documentation(this.currentLine, this.currentLine.length(), true);
             if (!docs.isEmpty())
-                this.getController().getDocumentationView().getEngine().loadContent(String.format("<code>%s</code><br>%s",
-                        docs.get(0).signature(), docs.get(0).javadoc()));
+                this.getController().getDocumentationView().getEngine().loadContent(docs.stream()
+                        .map(doc -> String.format("<code>%s</code><br>%s<hr/>", doc.signature(), doc.javadoc()))
+                        .collect(Collectors.joining()));
         }
     }
 
@@ -176,16 +184,17 @@ public class TextEditorAutoComplete {
                             .replaceFirst("^\\*", "")));
 
                 try {
-                    if (!getController().getSavedOpenFiles().containsKey(textEditor) && shelvedFileName == null) {
+                    if (!getController().getSavedOpenFiles().containsKey(textEditor) && shelvedFileName == null
+                            && savedFile == null) {
                         if (!shelfDir.toFile().exists())
                             Files.createDirectory(shelfDir);
                         shelvedFileName = UUID.randomUUID().toString();
                         Files.writeString(shelfDir.resolve(shelvedFileName), textEditor.getCodeArea().getText(),
                                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                    } else if (shelvedFileName != null && !shelvedFileName.isBlank()) {
+                    } else if (shelvedFileName != null && !shelvedFileName.isBlank())
                         Files.writeString(shelfDir.resolve(shelvedFileName), textEditor.getCodeArea().getText(),
                                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                    }
+                    savedFile = null;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
