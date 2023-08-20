@@ -3,8 +3,8 @@ package com.example.jshelleditor;
 import com.example.jshelleditor.artifacts.ArtifactManager;
 import com.example.jshelleditor.editor.TextEditor;
 import com.example.jshelleditor.editor.TextEditorAutoComplete;
-import com.example.jshelleditor.streams.ConsoleInputStream;
-import com.example.jshelleditor.streams.ConsoleOutputStream;
+import com.example.jshelleditor.io.ConsoleInputStream;
+import com.example.jshelleditor.io.ConsoleOutputStream;
 import com.example.jshelleditor.xml.XmlHandler;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -28,6 +28,7 @@ import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 import jdk.jshell.JShell;
 import jdk.jshell.JShellException;
@@ -171,6 +172,16 @@ public class JShellEditorController implements Initializable {
                 output.setPrefHeight(.3 * screenBounds.getHeight());
             }
         });
+        stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+            @Override
+            public void handle(WindowEvent event) {
+                for (var editor : getEditors()) {
+                    if (savedOpenFiles.containsKey(editor))
+                        saveFile(editor);
+                }
+            }
+        });
+
         this.splitPane.setPrefHeight(stage.getHeight());
         this.tabParent.setPrefHeight(.75 * screenBounds.getHeight());
         this.output.setPrefHeight(.3 * screenBounds.getHeight());
@@ -507,6 +518,9 @@ public class JShellEditorController implements Initializable {
                         event.consume();
                         return;
                     }
+                    if (savedOpenFiles.containsKey(textEditor))
+                        saveFile((ActionEvent) null);
+
                     textEditor.getSubscriber().unsubscribe();
                     textEditor.stop();
                     editors.remove(textEditor);
@@ -565,6 +579,17 @@ public class JShellEditorController implements Initializable {
         Event.fireEvent(currentTab, new Event(currentTab, currentTab, Tab.CLOSED_EVENT));
         this.tabPane.getTabs().remove(currentTab);
         this.savedOpenFiles.remove(this.getCurrentTextEditor());
+    }
+
+    private void saveFile(TextEditor editor) {
+        try {
+            if (this.savedOpenFiles.containsKey(editor)) {
+                Files.writeString(this.savedOpenFiles.get(editor).toPath(), editor.getCodeArea().getText());
+                editor.getTab().setText(editor.getTab().getText().replaceFirst("^\\*", ""));
+            } else this.saveFileAs(null);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void saveFile(ActionEvent event) throws IOException {

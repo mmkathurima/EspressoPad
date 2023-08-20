@@ -1,6 +1,7 @@
 package com.example.jshelleditor.editor;
 
 import com.example.jshelleditor.JShellEditorController;
+import com.example.jshelleditor.xml.HtmlHandler;
 import com.example.jshelleditor.xml.XmlHandler;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -13,6 +14,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
 import javafx.stage.Popup;
 import jdk.jshell.JShell;
+import jdk.jshell.Snippet;
 import jdk.jshell.SnippetEvent;
 import jdk.jshell.SourceCodeAnalysis;
 import org.fxmisc.richtext.model.TwoDimensional;
@@ -98,10 +100,12 @@ public class TextEditorAutoComplete {
                 .collect(Collectors.toList());
 
         if (!suggestions.isEmpty()) {
-            String suggestion = suggestions.stream().filter(x -> x.equals(this.autocomplete.getSelectionModel().getSelectedItem()))
+            String suggestion = suggestions.stream()
+                    .filter(x -> x.equals(this.autocomplete.getSelectionModel().getSelectedItem()))
                     .findFirst().orElse(suggestions.get(0));
             String prefix = this.findCommonPrefix(currentText, suggestion);
-            this.textEditor.getCodeArea().insertText(this.textEditor.getCodeArea().getCaretPosition(), suggestion.substring(prefix.length()));
+            this.textEditor.getCodeArea().insertText(this.textEditor.getCodeArea().getCaretPosition(),
+                    suggestion.substring(prefix.length()));
         }
         //this.codeArea.appendText(currentText);
     }
@@ -119,7 +123,9 @@ public class TextEditorAutoComplete {
             this.autoCompletePopup = new Popup();
             this.autocomplete.setMaxHeight(80);
             this.autoCompletePopup.getContent().add(this.autocomplete);
-            this.autoCompletePopup.show(this.textEditor.getCodeArea(), this.textEditor.getCodeArea().getCaretBounds().get().getMaxX(),
+            this.autoCompletePopup.show(
+                    this.textEditor.getCodeArea(),
+                    this.textEditor.getCodeArea().getCaretBounds().get().getMaxX(),
                     this.textEditor.getCodeArea().getCaretBounds().get().getMaxY());
         }
         this.textEditor.getCodeArea().requestFocus();
@@ -128,15 +134,18 @@ public class TextEditorAutoComplete {
     private void showDocumentation() {
         try (JShell docShell = JShell.create()) {
             this.addArtifactsAndImports(docShell);
+            this.getShell().imports().map(Snippet::source).forEach(docShell::eval);
             this.caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
                     TwoDimensional.Bias.Forward);
             this.currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
 
             List<SourceCodeAnalysis.Documentation> docs = docShell.sourceCodeAnalysis()
                     .documentation(this.currentLine, this.currentLine.length(), true);
+
             if (!docs.isEmpty())
                 this.getController().getDocumentationView().getEngine().loadContent(docs.stream()
-                        .map(doc -> String.format("<code>%s</code><br>%s<hr/>", doc.signature(), doc.javadoc()))
+                        .map(doc -> String.format("<div><code>%s</code><br><br>%s<hr/></div>", doc.signature(),
+                                HtmlHandler.convertJavaDoc(doc.javadoc())))
                         .collect(Collectors.joining()));
         }
     }
@@ -175,7 +184,8 @@ public class TextEditorAutoComplete {
         this.textEditor.getCodeArea().textProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(), TwoDimensional.Bias.Forward);
+                caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
+                        TwoDimensional.Bias.Forward);
                 currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
                 Path shelfDir = Path.of(System.getProperty("user.dir"), "shelf");
 
@@ -201,7 +211,8 @@ public class TextEditorAutoComplete {
 
                 if (!currentLine.isBlank() && currentLine.charAt(currentLine.length() - 1) == '(') {
                     //showDocumentation();
-                } else if (caretPos.getMinor() > 0 && !currentLine.isBlank() && currentLine.charAt(currentLine.length() - 1) != '{') {
+                } else if (caretPos.getMinor() > 0 && !currentLine.isBlank() &&
+                        currentLine.charAt(currentLine.length() - 1) != '{') {
                     showAutoCompletePopup();
                     //showDocumentation();
                 } else if (autoCompletePopup != null)
@@ -212,10 +223,14 @@ public class TextEditorAutoComplete {
             @Override
             public void handle(KeyEvent event) {
                 if (event.getCode() == KeyCode.ENTER) {
-                    caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(), TwoDimensional.Bias.Forward);
+                    caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
+                            TwoDimensional.Bias.Forward);
                     if (caretPos.getMinor() == 0) {
-                        String prevLine = textEditor.getCodeArea().getText(caretPos.getMajor() - ((caretPos.getMajor() > 0) ? 1 : 0));
-                        SourceCodeAnalysis.CompletionInfo completionInfo = textEditor.shell.sourceCodeAnalysis().analyzeCompletion(prevLine);
+                        String prevLine = textEditor.getCodeArea().getText(
+                                caretPos.getMajor() - ((caretPos.getMajor() > 0) ? 1 : 0));
+                        SourceCodeAnalysis.CompletionInfo completionInfo = textEditor.shell
+                                .sourceCodeAnalysis()
+                                .analyzeCompletion(prevLine);
                         switch (completionInfo.completeness()) {
                             case UNKNOWN:
                             case DEFINITELY_INCOMPLETE:

@@ -20,8 +20,8 @@ module com.example.jshelleditor {
     exports com.example.jshelleditor;
     exports com.example.jshelleditor.artifacts;
     opens com.example.jshelleditor.artifacts to javafx.fxml;
-    exports com.example.jshelleditor.streams;
-    opens com.example.jshelleditor.streams to javafx.fxml;
+    exports com.example.jshelleditor.io;
+    opens com.example.jshelleditor.io to javafx.fxml;
     exports com.example.jshelleditor.editor;
     opens com.example.jshelleditor.editor to javafx.fxml;
 }

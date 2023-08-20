@@ -1,4 +1,4 @@
-package com.example.jshelleditor.streams;
+package com.example.jshelleditor.io;
 
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;

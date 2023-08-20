@@ -150,7 +150,6 @@ public class XmlHandler {
         }
     }
 
-    //TODO: Call this in the shell.evals
     public List<String> parseImportXml() {
         try {
             NodeList imports = this.initDocument(this.importsFile).getElementsByTagName("import");
