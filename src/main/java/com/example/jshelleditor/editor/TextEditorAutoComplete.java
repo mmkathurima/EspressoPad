@@ -209,8 +209,10 @@ public class TextEditorAutoComplete {
                     throw new RuntimeException(e);
                 }
 
-                if (!currentLine.isBlank() && currentLine.charAt(currentLine.length() - 1) == '(') {
-                    //showDocumentation();
+                if (!currentLine.isBlank() && (currentLine.charAt(currentLine.length() - 1) == '('
+                        || currentLine.charAt(currentLine.length() - 1) == '.' ||
+                        currentLine.charAt(currentLine.length() - 1) == ' ')) {
+                    showDocumentation();
                 } else if (caretPos.getMinor() > 0 && !currentLine.isBlank() &&
                         currentLine.charAt(currentLine.length() - 1) != '{') {
                     showAutoCompletePopup();

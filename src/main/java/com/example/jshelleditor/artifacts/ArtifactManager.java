@@ -66,7 +66,7 @@ public class ArtifactManager extends Application {
             }
         });
         stage.setScene(scene);
-        stage.setTitle("Add dependencies (WORK IN PROGRESS)");
+        stage.setTitle("Manage dependencies");
         stage.show();
     }
 }

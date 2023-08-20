@@ -6,6 +6,9 @@ import com.example.jshelleditor.editor.TextEditorAutoComplete;
 import com.example.jshelleditor.io.ConsoleInputStream;
 import com.example.jshelleditor.io.ConsoleOutputStream;
 import com.example.jshelleditor.xml.XmlHandler;
+import com.github.abrarsyed.jastyle.ASFormatter;
+import com.github.abrarsyed.jastyle.constants.EnumFormatStyle;
+import com.github.abrarsyed.jastyle.constants.SourceMode;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -40,10 +43,7 @@ import org.kordamp.ikonli.javafx.FontIcon;
 
 import javax.swing.filechooser.FileSystemView;
 import java.awt.Desktop;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -423,9 +423,10 @@ public class JShellEditorController implements Initializable {
                     dialog.showAndWait().ifPresent(x -> {
                         Path path = Path.of(file.getParent(), String.format("%s.%s", x, getFileExtension(fileName)));
                         if (!Files.exists(path)) {
-                            if (file.renameTo(path.toFile()))
+                            if (file.renameTo(path.toFile())) {
                                 refreshFileTree();
-                            else new Alert(Alert.AlertType.ERROR, String.format("Renaming '%s' failed.", fileName))
+                                getCurrentTextEditor().getTab().setText(String.valueOf(path.getFileName()));
+                            } else new Alert(Alert.AlertType.ERROR, String.format("Renaming '%s' failed.", fileName))
                                     .showAndWait();
                         }
                     });
@@ -673,7 +674,34 @@ public class JShellEditorController implements Initializable {
         });
     }
 
+    public void duplicateLine(ActionEvent event) {
+        TwoDimensional.Position caretPos = this.getCurrentTextEditor().getCodeArea()
+                .offsetToPosition(this.getCurrentTextEditor().getCodeArea().getCaretPosition(),
+                        TwoDimensional.Bias.Forward);
+        String currentLine = this.getCurrentTextEditor().getCodeArea()
+                .getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
+        this.getCurrentTextEditor().getCodeArea().insertText(caretPos.getMajor(), caretPos.getMinor(),
+                String.format("\n%s", currentLine));
+    }
+
     public void reformat(ActionEvent event) {
+        ASFormatter formatter = new ASFormatter();
+        formatter.setSourceStyle(SourceMode.JAVA);
+        formatter.setFormattingStyle(EnumFormatStyle.JAVA);
+        formatter.setSwitchIndent(true);
+        formatter.setCaseIndent(true);
+        formatter.setTabSpaceConversionMode(true);
+        formatter.setLabelIndent(true);
+
+        try (Reader reader = new BufferedReader(new StringReader(
+                this.getCurrentTextEditor().getCodeArea().getText()))) {
+            try (Writer writer = new StringWriter()) {
+                formatter.format(reader, writer);
+                this.getCurrentTextEditor().getCodeArea().replaceText(writer.toString());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void runCode(ActionEvent event) {

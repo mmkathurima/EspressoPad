@@ -28,8 +28,9 @@
             <MenuItem accelerator="Shortcut+C" onAction="#copy" text="Copy"/>
             <MenuItem accelerator="Shortcut+V" onAction="#paste" text="Paste"/>
             <SeparatorMenuItem/>
-            <MenuItem accelerator="Shortcut+A" onAction="#selectAllText" text="Select All"/>
             <MenuItem accelerator="Shortcut+G" onAction="#goToLine" text="Go to line"/>
+            <MenuItem accelerator="Shortcut+D" onAction="#duplicateLine" text="Duplicate Current Line"/>
+            <MenuItem accelerator="Shortcut+A" onAction="#selectAllText" text="Select All"/>
             <MenuItem accelerator="Shortcut+Alt+L" onAction="#reformat" text="Reformat"/>
         </Menu>
         <Menu text="Tools">

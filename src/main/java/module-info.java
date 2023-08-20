@@ -15,6 +15,7 @@ module com.example.jshelleditor {
     requires maven.archeologist;
     requires kotlin.stdlib;
     requires kotlin.stdlib.common;
+    requires jAstyle;
 
     opens com.example.jshelleditor to javafx.fxml;
     exports com.example.jshelleditor;

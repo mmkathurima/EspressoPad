@@ -35,6 +35,11 @@
             <artifactId>maven-archeologist</artifactId>
             <version>0.0.10</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.abrarsyed.jastyle</groupId>
+            <artifactId>jAstyle</artifactId>
+            <version>1.3</version>
+        </dependency>
     </dependencies>
 
     <build>
