@@ -1,14 +1,14 @@
 package com.github.espressopad;
 
+import com.github.abrarsyed.jastyle.ASFormatter;
+import com.github.abrarsyed.jastyle.constants.EnumFormatStyle;
+import com.github.abrarsyed.jastyle.constants.SourceMode;
 import com.github.espressopad.artifacts.ArtifactManager;
 import com.github.espressopad.editor.TextEditor;
 import com.github.espressopad.editor.TextEditorAutoComplete;
 import com.github.espressopad.io.ConsoleInputStream;
 import com.github.espressopad.io.ConsoleOutputStream;
 import com.github.espressopad.xml.XmlHandler;
-import com.github.abrarsyed.jastyle.ASFormatter;
-import com.github.abrarsyed.jastyle.constants.EnumFormatStyle;
-import com.github.abrarsyed.jastyle.constants.SourceMode;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -48,13 +48,11 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class EspressoPadController implements Initializable {
-    @FXML
-    private VBox outputPane;
-    @FXML
-    private SplitPane mainSplit;
     @FXML
     private VBox mainBox;
     @FXML
@@ -71,9 +69,38 @@ public class EspressoPadController implements Initializable {
     private TreeView<File> treeView;
     @FXML
     private WebView documentationView;
-    private final XmlHandler handler = new XmlHandler();
     @FXML
     private VBox tabParent;
+    @FXML
+    private SplitPane mainSplit;
+    @FXML
+    private VBox findReplaceBox;
+    @FXML
+    private VBox outputPane;
+    @FXML
+    private CheckMenuItem toggleFindReplaceMenuItem;
+    @FXML
+    private TextField findText;
+    @FXML
+    private ToggleButton matchCase;
+    @FXML
+    private Label findResults;
+    @FXML
+    private Button prevMatch;
+    @FXML
+    private Button nextMatch;
+    @FXML
+    private ToggleButton matchWord;
+    @FXML
+    private ToggleButton matchRegex;
+    @FXML
+    private TextField replacementText;
+    @FXML
+    private Button replaceOne;
+    @FXML
+    private Button replaceAll;
+
+    private final XmlHandler handler = new XmlHandler();
     private final List<TextEditor> editors = new ArrayList<>();
     private final List<TextEditorAutoComplete> tacs = new ArrayList<>();
     private TextEditor editor;
@@ -85,6 +112,7 @@ public class EspressoPadController implements Initializable {
     private JShell shell;
     private File[] shelfChildren;
     private File currentFile = null;
+    private int currentSelectionIndex = 0;
 
     public WebView getDocumentationView() {
         return this.documentationView;
@@ -92,6 +120,91 @@ public class EspressoPadController implements Initializable {
 
     public List<TextEditor> getEditors() {
         return this.editors;
+    }
+
+    @Override
+    @FXML
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+        Tab tab = this.newTabButton(this.tabPane);
+        this.splitPane.setDividerPosition(0, .3);
+        this.splitPane.setPrefHeight(this.mainBox.getPrefHeight());
+        this.tabPane.getTabs().add(tab);
+        this.editor = new TextEditor(this.tabPane.getTabs().get(this.tabPane.getTabs().indexOf(tab) - 1));
+        this.handler.writeImportXml(List.of("java.util.stream.*", "java.util.*", "java.io.*"));
+        this.tac = new TextEditorAutoComplete(this.editor);
+        this.tac.setController(this);
+        this.tacs.add(this.tac);
+        this.editors.add(this.editor);
+        this.out = new ConsoleOutputStream(this.output);
+        this.printStream = new PrintStream(this.out);
+        this.in = new ConsoleInputStream();
+        this.shell = JShell.builder().out(this.printStream).err(this.printStream).in(this.in).build();
+
+        this.findReplaceBox.managedProperty().bind(this.findReplaceBox.visibleProperty());
+        //TODO: Change this to be more cross platform
+        this.output.setFont(Font.font("Consolas", 14d));
+
+        if (this.handler.getArtifactFile().exists()) {
+            for (String s : this.handler.parseArtifactXml())
+                this.shell.addToClasspath(s);
+        }
+
+        this.run.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                runCode();
+            }
+        });
+
+        this.clear.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                output.clear();
+            }
+        });
+        this.treeView.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                if (event.getClickCount() == 2) {
+                    TreeItem<File> treeItem = treeView.getSelectionModel().getSelectedItem();
+                    if (treeItem != null) {
+                        File file = treeItem.getValue();
+                        if (file != null) {
+                            try {
+                                openFile(file);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        this.refreshFileTree();
+        this.setupContextMenu();
+        this.initFindReplace();
+
+        try {
+            File shelf = Path.of(System.getProperty("user.dir"), "shelf").toFile();
+            this.shelfChildren = shelf.listFiles();
+            if (shelf.exists() && this.shelfChildren != null && this.shelfChildren.length > 0) {
+                for (int i = 0; i < this.shelfChildren.length; i++) {
+                    File shelfFile = this.shelfChildren[i];
+                    tab = new Tab(String.format("*Shelved %d", i + 1));
+                    this.tabPane.getTabs().add(this.tabPane.getTabs().size() - 1, tab);
+                    TextEditor textEditor = new TextEditor(tab);
+                    textEditor.getCodeArea().replaceText(Files.readString(shelfFile.toPath()));
+                    TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor, shelfFile.getName());
+                    autoComplete.setController(this);
+                    this.tacs.add(autoComplete);
+                    this.editors.add(textEditor);
+                    this.setTabEvents(textEditor, autoComplete);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     static boolean compareFilesByLine(Path path1, Path path2) {
@@ -192,96 +305,6 @@ public class EspressoPadController implements Initializable {
     private void closeAllPopups() {
         tacs.stream().filter(x -> x.getAutoCompletePopup() != null && x.getAutoCompletePopup().isShowing())
                 .forEach(x -> x.getAutoCompletePopup().hide());
-    }
-
-    @Override
-    @FXML
-    public void initialize(URL url, ResourceBundle resourceBundle) {
-        Tab tab = this.newTabButton(this.tabPane);
-        this.splitPane.setDividerPosition(0, .3);
-        this.splitPane.setPrefHeight(this.mainBox.getPrefHeight());
-        this.tabPane.getTabs().add(tab);
-        this.editor = new TextEditor(this.tabPane.getTabs().get(this.tabPane.getTabs().indexOf(tab) - 1));
-        this.handler.writeImportXml(List.of("java.util.stream.*", "java.util.*", "java.io.*"));
-        this.tac = new TextEditorAutoComplete(this.editor);
-        this.tac.setController(this);
-        this.tacs.add(this.tac);
-        this.editors.add(this.editor);
-        this.out = new ConsoleOutputStream(this.output);
-        this.printStream = new PrintStream(this.out);
-        this.in = new ConsoleInputStream();
-        this.shell = JShell.builder().out(this.printStream).err(this.printStream).in(this.in).build();
-
-        //TODO: Change this to be more cross platform
-        /*
-        ObservableList<String> mono = this.getMonospaceFonts();
-        System.out.printf("Available monospaced fonts: %s\n", mono);
-        if (mono.contains("Consolas"))
-            this.output.setFont(Font.font("Consolas", 14d));
-        else this.output.setFont(Font.font(mono.get(0), 14d));
-        */
-        this.output.setFont(Font.font("Consolas", 14d));
-
-        if (this.handler.getArtifactFile().exists()) {
-            for (String s : this.handler.parseArtifactXml())
-                this.shell.addToClasspath(s);
-        }
-
-        this.run.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                runCode();
-            }
-        });
-
-        this.clear.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                output.clear();
-            }
-        });
-        this.treeView.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                if (event.getClickCount() == 2) {
-                    TreeItem<File> treeItem = treeView.getSelectionModel().getSelectedItem();
-                    if (treeItem != null) {
-                        File file = treeItem.getValue();
-                        if (file != null) {
-                            try {
-                                openFile(file);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        this.refreshFileTree();
-        this.setupContextMenu();
-
-        try {
-            File shelf = Path.of(System.getProperty("user.dir"), "shelf").toFile();
-            this.shelfChildren = shelf.listFiles();
-            if (shelf.exists() && this.shelfChildren != null && this.shelfChildren.length > 0) {
-                for (int i = 0; i < this.shelfChildren.length; i++) {
-                    File shelfFile = this.shelfChildren[i];
-                    tab = new Tab(String.format("*Shelved %d", i + 1));
-                    this.tabPane.getTabs().add(this.tabPane.getTabs().size() - 1, tab);
-                    TextEditor textEditor = new TextEditor(tab);
-                    textEditor.getCodeArea().replaceText(Files.readString(shelfFile.toPath()));
-                    TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor, shelfFile.getName());
-                    autoComplete.setController(this);
-                    this.tacs.add(autoComplete);
-                    this.editors.add(textEditor);
-                    this.setTabEvents(textEditor, autoComplete);
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     // Tab that acts as a button and adds a new tab and selects it
@@ -726,6 +749,137 @@ public class EspressoPadController implements Initializable {
             @Override
             public void run() {
                 new About(tabPane.getScene().getWindow()).start(new Stage());
+            }
+        });
+    }
+
+    public void toggleFindReplace(ActionEvent event) {
+        boolean findReplaceVisible = this.findReplaceBox.isVisible();
+        this.findReplaceBox.setVisible(!findReplaceVisible);
+        this.toggleFindReplaceMenuItem.setSelected(findReplaceVisible);
+        if (findReplaceVisible)
+            this.findText.requestFocus();
+    }
+
+    private List<Integer> indicesOf(String haystack, String needle,
+                                    boolean ignoreCase, boolean matchRegex, boolean matchWord) {
+        List<Integer> matches = new ArrayList<>();
+        if (needle == null || needle.isBlank()) return matches;
+
+        int index = haystack.indexOf(needle);
+
+        if (ignoreCase && !matchRegex && !matchWord) {
+            // Convert both the text and substring to lowercase for a case-insensitive search
+            haystack = haystack.toLowerCase();
+            needle = needle.toLowerCase();
+            index = haystack.indexOf(needle);
+        }
+
+        if (matchRegex || matchWord) {
+            Pattern pattern;
+            if (matchWord) {
+                if (ignoreCase)
+                    pattern = Pattern.compile(String.format("\\b%s\\b", Pattern.quote(needle)), Pattern.CASE_INSENSITIVE);
+                else pattern = Pattern.compile(String.format("\\b%s\\b", Pattern.quote(needle)));
+            } else {
+                if (ignoreCase)
+                    pattern = Pattern.compile(needle, Pattern.CASE_INSENSITIVE);
+                else pattern = Pattern.compile(needle);
+            }
+
+            Matcher matcher = pattern.matcher(haystack);
+            while (matcher.find()) {
+                index = matcher.start();
+                matches.add(index);
+            }
+        } else while (index >= 0) {
+            matches.add(index);
+            index = haystack.indexOf(needle, index + 1);
+        }
+        return matches;
+    }
+
+    private void initFindReplace() {
+        this.prevMatch.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                String findTxt = findText.getText();
+                CodeArea area = getCurrentTextEditor().getCodeArea();
+                TwoDimensional.Position caretPos = area.offsetToPosition(area.getCaretPosition(),
+                        TwoDimensional.Bias.Forward);
+                String txt = area.getText();
+                List<Integer> indices = indicesOf(txt, findTxt,
+                        !matchCase.isSelected(), matchRegex.isSelected(), matchWord.isSelected());
+                currentSelectionIndex--;
+                if (currentSelectionIndex < 0)
+                    currentSelectionIndex = indices.size() - 1;
+                if (!indices.isEmpty()) {
+                    int j = indices.get(currentSelectionIndex);
+                    area.selectRange(j, j + findTxt.length());
+                    findResults.setText(String.format("Result %d of %d", currentSelectionIndex + 1, indices.size()));
+                } else {
+                    area.moveTo(caretPos.getMajor(), caretPos.getMinor());
+                    findResults.setText("No Results");
+                }
+            }
+        });
+        this.nextMatch.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                String findTxt = findText.getText();
+                CodeArea area = getCurrentTextEditor().getCodeArea();
+                TwoDimensional.Position caretPos = area.offsetToPosition(area.getCaretPosition(),
+                        TwoDimensional.Bias.Forward);
+                String txt = area.getText();
+                List<Integer> indices = indicesOf(txt, findTxt,
+                        !matchCase.isSelected(), matchRegex.isSelected(), matchWord.isSelected());
+                currentSelectionIndex++;
+                if (currentSelectionIndex >= indices.size())
+                    currentSelectionIndex = 0;
+                if (!indices.isEmpty()) {
+                    int j = indices.get(currentSelectionIndex);
+                    area.selectRange(j, j + findTxt.length());
+                    findResults.setText(String.format("Result %d of %d", currentSelectionIndex + 1, indices.size()));
+                } else {
+                    area.moveTo(caretPos.getMajor(), caretPos.getMinor());
+                    findResults.setText("No Results");
+                }
+            }
+        });
+        this.replaceOne.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                String findTxt = findText.getText();
+                CodeArea area = getCurrentTextEditor().getCodeArea();
+                String txt = area.getText();
+
+                List<Integer> indices = indicesOf(txt, findTxt,
+                        !matchCase.isSelected(), matchRegex.isSelected(), matchWord.isSelected());
+                if (!indices.isEmpty()) {
+                    int j = indices.get(currentSelectionIndex);
+                    area.replaceText(j, j + findTxt.length(), replacementText.getText());
+                }
+            }
+        });
+        this.replaceAll.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                String findTxt = findText.getText();
+                CodeArea area = getCurrentTextEditor().getCodeArea();
+                String txt = area.getText();
+
+                List<Integer> indices = indicesOf(txt, findTxt,
+                        !matchCase.isSelected(), matchRegex.isSelected(), matchWord.isSelected());
+                if (!indices.isEmpty()) {
+                    List<String> searches = indices.stream()
+                            .mapToInt(i -> i)
+                            .mapToObj(i -> area.getText(i, i + findTxt.length()))
+                            .collect(Collectors.toList());
+                    for (String s : searches) {
+                        txt = txt.replace(s, replacementText.getText());
+                    }
+                    area.replaceText(txt);
+                }
             }
         });
     }

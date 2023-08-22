@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TextEditorAutoComplete {
     private final TextEditor textEditor;
@@ -214,7 +215,8 @@ public class TextEditorAutoComplete {
                         currentLine.charAt(currentLine.length() - 1) == ' ')) {
                     showDocumentation();
                 } else if (caretPos.getMinor() > 0 && !currentLine.isBlank() &&
-                        currentLine.charAt(currentLine.length() - 1) != '{') {
+                        currentLine.charAt(currentLine.length() - 1) != '{' &&
+                        currentLine.charAt(currentLine.length() - 1) != '}') {
                     showAutoCompletePopup();
                     //showDocumentation();
                 } else if (autoCompletePopup != null)
@@ -247,6 +249,42 @@ public class TextEditorAutoComplete {
                 } else if (event.isControlDown() && event.getCode() == KeyCode.SPACE) {
                     showAutoCompletePopup();
                     //showDocumentationPopup();
+                }
+            }
+        });
+        this.textEditor.getCodeArea().addEventHandler(KeyEvent.KEY_RELEASED, new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                if (Stream.of(KeyCode.SHIFT, KeyCode.ALT, KeyCode.CONTROL, KeyCode.TAB, KeyCode.CAPS, KeyCode.BACK_SPACE,
+                        KeyCode.DELETE, KeyCode.ENTER).noneMatch(x -> event.getCode().equals(x)) &&
+                        !event.getCode().isArrowKey()) {
+                    int cursorPosition = textEditor.getCodeArea().getCaretPosition();
+                    if (cursorPosition > 0) {
+                        char bracket = textEditor.getCodeArea().getText(cursorPosition - 1, cursorPosition).charAt(0);
+                        //PunctuationComplete.onPunctuationComplete(codeTextArea, bracket, cursorPosition);
+                        switch (bracket) {
+                            case '{':
+                                textEditor.getCodeArea().insertText(cursorPosition, "}");
+                                textEditor.getCodeArea().moveTo(cursorPosition);
+                                break;
+                            case '[':
+                                textEditor.getCodeArea().insertText(cursorPosition, "]");
+                                textEditor.getCodeArea().moveTo(cursorPosition);
+                                break;
+                            case '(':
+                                textEditor.getCodeArea().insertText(cursorPosition, ")");
+                                textEditor.getCodeArea().moveTo(cursorPosition);
+                                break;
+                            case '\'':
+                                textEditor.getCodeArea().insertText(cursorPosition, "'");
+                                textEditor.getCodeArea().moveTo(cursorPosition);
+                                break;
+                            case '\"':
+                                textEditor.getCodeArea().insertText(cursorPosition, "\"");
+                                textEditor.getCodeArea().moveTo(cursorPosition);
+                                break;
+                        }
+                    }
                 }
             }
         });

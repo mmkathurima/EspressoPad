@@ -1,9 +1,6 @@
 package com.github.espressopad.editor;
 
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
-import javafx.scene.control.IndexRange;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.StackPane;
 import jdk.jshell.JShell;
@@ -24,7 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 
 public class TextEditor {
-    private final CodeArea codeArea;
+    private final CustomCodeArea codeArea;
     private final ExecutorService executor;
     private Subscription subscriber;
     protected JShell shell;
@@ -48,7 +45,8 @@ public class TextEditor {
 
     public TextEditor(Tab tab) {
         this.tab = tab;
-        this.codeArea = new CodeArea();
+        this.codeArea = new CustomCodeArea();
+        new BracketHighlighter(this.codeArea);
         this.executor = Executors.newSingleThreadExecutor();
         this.codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
         this.setSubscriber(codeArea.multiPlainChanges()
@@ -72,7 +70,7 @@ public class TextEditor {
         this.codeArea.setId("code-area");
         this.codeArea.setWrapText(true);
         tab.setContent(new StackPane(new VirtualizedScrollPane<>(this.codeArea)));
-        tab.getTabPane().getStylesheets().add(this.getClass().getResource("java-keywords.css").toExternalForm());
+        tab.getTabPane().getStylesheets().add(this.getClass().getResource("editor.css").toExternalForm());
     }
 
     public void stop() throws IOException {

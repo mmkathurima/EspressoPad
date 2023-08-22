@@ -7,13 +7,8 @@
     -fx-font-weight: bold;
 }
 
-.paren, .brace {
+.paren, .brace, .bracket, .unmatchBracket {
     -fx-fill: firebrick;
-    -fx-font-weight: bold;
-}
-
-.bracket {
-    -fx-fill: darkgreen;
     -fx-font-weight: bold;
 }
 
@@ -35,4 +30,9 @@
 
 .lineno {
     -fx-font-style: normal;
+}
+
+.matchBracket {
+    -rtfx-background-color: firebrick;
+    -fx-fill: white;
 }
