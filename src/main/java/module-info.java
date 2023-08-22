@@ -1,9 +1,12 @@
-module com.example.jshelleditor {
+module com.github.espressopad {
     requires org.kordamp.ikonli.core;
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.ikonli.fontawesome5;
+    requires javafx.base;
+    requires javafx.graphics;
     requires javafx.controls;
     requires javafx.fxml;
+    requires javafx.web;
 
     requires jdk.jshell;
     requires java.desktop;
@@ -11,18 +14,19 @@ module com.example.jshelleditor {
     requires org.fxmisc.richtext;
     requires org.fxmisc.undo;
     requires reactfx;
-    requires javafx.web;
     requires maven.archeologist;
     requires kotlin.stdlib;
     requires kotlin.stdlib.common;
     requires jAstyle;
 
-    opens com.example.jshelleditor to javafx.fxml;
-    exports com.example.jshelleditor;
-    exports com.example.jshelleditor.artifacts;
-    opens com.example.jshelleditor.artifacts to javafx.fxml;
-    exports com.example.jshelleditor.io;
-    opens com.example.jshelleditor.io to javafx.fxml;
-    exports com.example.jshelleditor.editor;
-    opens com.example.jshelleditor.editor to javafx.fxml;
+    opens com.github.espressopad;
+    exports com.github.espressopad;
+    exports com.github.espressopad.artifacts;
+    opens com.github.espressopad.artifacts;
+    exports com.github.espressopad.editor;
+    opens com.github.espressopad.editor;
+    exports com.github.espressopad.io;
+    opens com.github.espressopad.io;
+    exports com.github.espressopad.xml;
+    opens com.github.espressopad.xml;
 }

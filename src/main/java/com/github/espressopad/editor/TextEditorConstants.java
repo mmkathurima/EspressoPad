@@ -1,4 +1,4 @@
-package com.example.jshelleditor.editor;
+package com.github.espressopad.editor;
 
 import java.util.regex.Pattern;
 

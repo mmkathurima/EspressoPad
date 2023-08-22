@@ -1,4 +1,4 @@
-package com.example.jshelleditor.xml;
+package com.github.espressopad.xml;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,19 +31,27 @@ public class HtmlHandler {
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Deprecated: </b>$1</div>");
 
-        pattern = Pattern.compile("\\{*\\@exception\\s+(.*?)\\}*");
+        pattern = Pattern.compile("\\{*\\@(exception|throws)\\s+(.*?)\\}*");
         matcher = pattern.matcher(input);
         while (matcher.find())
-            input = matcher.replaceAll("\n\t\t<div><b>Exception:</b> $1</div>");
+            input = matcher.replaceAll("\n\t\t<div><b>Exception:</b> $2</div>");
+
+        pattern = Pattern.compile("<div><b>Exception:</b>\\s*</div>\\b(\\w+)\\b");
+        matcher = pattern.matcher(input);
+        input = matcher.replaceAll("<div><b>Exception:</b>&nbsp;<span class='red'>$1</span>");
+
+        pattern = Pattern.compile("@implNote\\s+(.*?)");
+        matcher = pattern.matcher(input);
+        input = matcher.replaceAll("\n\t\t<div><b>Implementation Note: </b>$1</div>");
+
+        pattern = Pattern.compile("@implSpec\\s+(.*?)");
+        matcher = pattern.matcher(input);
+        input = matcher.replaceAll("\n\t\t<div><b>Implementation Spec: </b>$1</div>");
 
         // Replace {@link ...} with <a href="...">...</a>
-        pattern = Pattern.compile("\\{\\@link\\s+(.*?)\\}");
+        pattern = Pattern.compile("\\{\\@(link|linkplain)\\s+(.*?)\\}");
         matcher = pattern.matcher(input);
-        input = matcher.replaceAll("<a href=\"$1\">$1</a>");
-
-        pattern = Pattern.compile("\\{\\@linkplain\\s+(.*?)\\}");
-        matcher = pattern.matcher(input);
-        input = matcher.replaceAll("<a href=\"$1\">$1</a>");
+        input = matcher.replaceAll("<a href=\"$2\">$2</a>");
 
         pattern = Pattern.compile("\\{*@param\\s+(.*?)\\}*");
         matcher = pattern.matcher(input);
@@ -51,11 +59,7 @@ public class HtmlHandler {
             input = matcher.replaceAll("\n\t\t<div><b>Parameter:</b>&nbsp;$1</div>");
 
         //"\n\t\t<div><b>Params:</b>&nbsp;$1</div>"
-        pattern = Pattern.compile("<b>Parameter:</b>&nbsp;</div>\\b(\\w+)\\b");
-        matcher = pattern.matcher(input);
-        input = matcher.replaceAll("<b>Parameter:</b>&nbsp;</div><span class='red'>$1</span>&nbsp;-");
-
-        pattern = Pattern.compile("<b>Parameter:</b>&nbsp;</div>(&lt;\\w+&gt;)");
+        pattern = Pattern.compile("<b>Parameter:</b>&nbsp;</div>((\\b(\\w+)\\b)|(&lt;\\w+&gt;))");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("<b>Parameter:</b>&nbsp;</div><span class='red'>$1</span>&nbsp;-");
 
@@ -83,14 +87,9 @@ public class HtmlHandler {
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Since:</b> $1</div>");
 
-        pattern = Pattern.compile("\\{*\\@throws\\s+(.*?)\\}*");
+        pattern = Pattern.compile("@spec\\s+(.*?)");
         matcher = pattern.matcher(input);
-        while (matcher.find())
-            input = matcher.replaceAll("\n\t\t<div><b>Exception:</b> $1</div>");
-
-        pattern = Pattern.compile("<div><b>Exception:</b>\\s*</div>\\b(\\w+)\\b");
-        matcher = pattern.matcher(input);
-        input = matcher.replaceAll("<div><b>Exception:</b>&nbsp;<span class='red'>$1</span>");
+        input = matcher.replaceAll("\n\t\t<div><b>Spec: </b>$1</div>");
 
         pattern = Pattern.compile("\\{\\@value\\s+(.*?)\\}");
         matcher = pattern.matcher(input);

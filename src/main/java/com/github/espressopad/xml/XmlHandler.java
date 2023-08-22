@@ -1,4 +1,4 @@
-package com.example.jshelleditor.xml;
+package com.github.espressopad.xml;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;

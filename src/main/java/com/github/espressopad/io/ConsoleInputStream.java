@@ -1,4 +1,4 @@
-package com.example.jshelleditor.io;
+package com.github.espressopad.io;
 
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;

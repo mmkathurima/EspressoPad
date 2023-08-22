@@ -1,8 +1,8 @@
-package com.example.jshelleditor.editor;
+package com.github.espressopad.editor;
 
-import com.example.jshelleditor.JShellEditorController;
-import com.example.jshelleditor.xml.HtmlHandler;
-import com.example.jshelleditor.xml.XmlHandler;
+import com.github.espressopad.EspressoPadController;
+import com.github.espressopad.xml.HtmlHandler;
+import com.github.espressopad.xml.XmlHandler;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
@@ -38,7 +38,7 @@ public class TextEditorAutoComplete {
     private TwoDimensional.Position caretPos;
     private List<SnippetEvent> snippetEvents;
     private TextArea output;
-    private JShellEditorController controller;
+    private EspressoPadController controller;
     private String shelvedFileName = null;
     private File savedFile = null;
 
@@ -65,11 +65,11 @@ public class TextEditorAutoComplete {
         this.output = output;
     }
 
-    public JShellEditorController getController() {
+    public EspressoPadController getController() {
         return this.controller;
     }
 
-    public void setController(JShellEditorController controller) {
+    public void setController(EspressoPadController controller) {
         this.controller = controller;
     }
 

@@ -1,4 +1,4 @@
-package com.example.jshelleditor.io;
+package com.github.espressopad.io;
 
 import javafx.application.Platform;
 import javafx.scene.control.TextArea;

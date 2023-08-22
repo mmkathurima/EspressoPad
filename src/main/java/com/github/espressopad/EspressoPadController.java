@@ -1,11 +1,11 @@
-package com.example.jshelleditor;
+package com.github.espressopad;
 
-import com.example.jshelleditor.artifacts.ArtifactManager;
-import com.example.jshelleditor.editor.TextEditor;
-import com.example.jshelleditor.editor.TextEditorAutoComplete;
-import com.example.jshelleditor.io.ConsoleInputStream;
-import com.example.jshelleditor.io.ConsoleOutputStream;
-import com.example.jshelleditor.xml.XmlHandler;
+import com.github.espressopad.artifacts.ArtifactManager;
+import com.github.espressopad.editor.TextEditor;
+import com.github.espressopad.editor.TextEditorAutoComplete;
+import com.github.espressopad.io.ConsoleInputStream;
+import com.github.espressopad.io.ConsoleOutputStream;
+import com.github.espressopad.xml.XmlHandler;
 import com.github.abrarsyed.jastyle.ASFormatter;
 import com.github.abrarsyed.jastyle.constants.EnumFormatStyle;
 import com.github.abrarsyed.jastyle.constants.SourceMode;
@@ -50,7 +50,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class JShellEditorController implements Initializable {
+public class EspressoPadController implements Initializable {
     @FXML
     private VBox outputPane;
     @FXML
@@ -299,7 +299,7 @@ public class JShellEditorController implements Initializable {
                     tabPane.getTabs().add(tabPane.getTabs().size() - 1, tab);
                     TextEditor textEditor = new TextEditor(tab);
                     TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor, currentFile);
-                    autoComplete.setController(JShellEditorController.this);
+                    autoComplete.setController(EspressoPadController.this);
                     tacs.add(autoComplete);
                     editors.add(textEditor);
                     // Selecting the tab before the button, which is the newly created one
@@ -499,7 +499,7 @@ public class JShellEditorController implements Initializable {
     }
 
     private Path validateDefaultDirectory() {
-        Path path = Path.of(FileSystemView.getFileSystemView().getDefaultDirectory().getPath(), "JShellEditor");
+        Path path = Path.of(FileSystemView.getFileSystemView().getDefaultDirectory().getPath(), "EspressoPad");
         if (!Files.exists(path)) {
             try {
                 Files.createDirectory(path);
@@ -713,7 +713,7 @@ public class JShellEditorController implements Initializable {
             @Override
             public void run() {
                 try {
-                    new ArtifactManager(JShellEditorController.this).start(new Stage());
+                    new ArtifactManager(EspressoPadController.this).start(new Stage());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

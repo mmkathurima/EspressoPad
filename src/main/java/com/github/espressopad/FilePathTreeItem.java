@@ -1,4 +1,4 @@
-package com.example.jshelleditor;
+package com.github.espressopad;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

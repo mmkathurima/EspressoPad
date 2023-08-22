@@ -1,7 +1,7 @@
-package com.example.jshelleditor.artifacts;
+package com.github.espressopad.artifacts;
 
-import com.example.jshelleditor.JShellEditorController;
-import com.example.jshelleditor.editor.TextEditorAutoComplete;
+import com.github.espressopad.EspressoPadController;
+import com.github.espressopad.editor.TextEditorAutoComplete;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
@@ -16,10 +16,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class ArtifactManager extends Application {
-    private final JShellEditorController jController;
+    private final EspressoPadController jController;
     private ArtifactManagerController controller;
 
-    public ArtifactManager(JShellEditorController controller) {
+    public ArtifactManager(EspressoPadController controller) {
         this.jController = controller;
     }
 

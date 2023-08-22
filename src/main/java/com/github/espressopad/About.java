@@ -1,6 +1,6 @@
-package com.example.jshelleditor;
+package com.github.espressopad;
 
-import com.example.jshelleditor.editor.TextEditorConstants;
+import com.github.espressopad.editor.TextEditorConstants;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -43,7 +43,7 @@ public class About extends Application {
         productName.setFont(Font.font(Font.getDefault().getFamily(), FontWeight.EXTRA_BOLD, 36d));
         productName.setAlignment(Pos.CENTER);
 
-        Label details = new Label(String.format("v0.9\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
+        Label details = new Label(String.format("v0.10\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
                 System.getProperty("java.vm.vendor"), System.getProperty("java.vm.version"),
                 System.getProperty("os.arch"), System.getProperty("java.vm.name")));
         details.setAlignment(Pos.CENTER);

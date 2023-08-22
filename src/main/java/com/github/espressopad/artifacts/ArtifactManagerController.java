@@ -1,6 +1,6 @@
-package com.example.jshelleditor.artifacts;
+package com.github.espressopad.artifacts;
 
-import com.example.jshelleditor.xml.XmlHandler;
+import com.github.espressopad.xml.XmlHandler;
 import com.squareup.tools.maven.resolution.ArtifactResolver;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;

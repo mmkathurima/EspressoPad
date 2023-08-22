@@ -1,6 +1,6 @@
-package com.example.jshelleditor;
+package com.github.espressopad;
 
-import com.example.jshelleditor.editor.TextEditor;
+import com.github.espressopad.editor.TextEditor;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -9,19 +9,19 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.util.Objects;
 
-public class JShellEditorMain extends Application {
-    private JShellEditorController controller;
+public class EspressoPadMain extends Application {
+    private EspressoPadController controller;
 
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(this.getClass().getResource("jshelleditor.fxml")));
+        FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(this.getClass().getResource("espressopad.fxml")));
         Scene scene = new Scene(loader.load(), 800d, 600d);
         this.controller = loader.getController();
         this.controller.setupStageListener(stage);
         this.controller.getEditors().get(0).getCodeArea().requestFocus();
 
         stage.setScene(scene);
-        stage.setTitle("JShell Editor");
+        stage.setTitle("Espresso Pad");
         stage.show();
     }
 

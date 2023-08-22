@@ -1,6 +1,9 @@
-package com.example.jshelleditor.editor;
+package com.github.espressopad.editor;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
+import javafx.scene.control.IndexRange;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.StackPane;
 import jdk.jshell.JShell;
@@ -26,6 +29,22 @@ public class TextEditor {
     private Subscription subscriber;
     protected JShell shell;
     private final Tab tab;
+
+    public Subscription getSubscriber() {
+        return subscriber;
+    }
+
+    protected void setSubscriber(Subscription subscriber) {
+        this.subscriber = subscriber;
+    }
+
+    public CodeArea getCodeArea() {
+        return codeArea;
+    }
+
+    public Tab getTab() {
+        return this.tab;
+    }
 
     public TextEditor(Tab tab) {
         this.tab = tab;
@@ -56,10 +75,6 @@ public class TextEditor {
         tab.getTabPane().getStylesheets().add(this.getClass().getResource("java-keywords.css").toExternalForm());
     }
 
-    public Tab getTab() {
-        return this.tab;
-    }
-
     public void stop() throws IOException {
         this.executor.shutdown();
         this.shell.stop();
@@ -87,18 +102,6 @@ public class TextEditor {
         }
         spansBuilder.add(Collections.emptyList(), text.length() - lastKwEnd);
         return spansBuilder.create();
-    }
-
-    public Subscription getSubscriber() {
-        return subscriber;
-    }
-
-    protected void setSubscriber(Subscription subscriber) {
-        this.subscriber = subscriber;
-    }
-
-    public CodeArea getCodeArea() {
-        return codeArea;
     }
 
     private Task<StyleSpans<Collection<String>>> computeHighlightingAsync() {
