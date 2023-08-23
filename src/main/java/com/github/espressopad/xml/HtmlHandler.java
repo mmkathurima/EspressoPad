@@ -27,6 +27,11 @@ public class HtmlHandler {
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("<code>$1</code>");
 
+        pattern = Pattern.compile("<pre>\\{@code\\s*([^}]*)\\s*}</pre>");
+        // Replace {@code ...} with <code>...</code>
+        matcher = pattern.matcher(input);
+        input = matcher.replaceAll("<pre><code>$1</code></pre>");
+
         pattern = Pattern.compile("@deprecated\\s+(.*?)");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Deprecated: </b>$1</div>");
@@ -47,6 +52,10 @@ public class HtmlHandler {
         pattern = Pattern.compile("@implSpec\\s+(.*?)");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Implementation Spec: </b>$1</div>");
+
+        pattern = Pattern.compile("@jls\\s+(.*?)");
+        matcher = pattern.matcher(input);
+        input = matcher.replaceAll("\n\t\t<div><b>jls: </b>$1</div>");
 
         // Replace {@link ...} with <a href="...">...</a>
         pattern = Pattern.compile("\\{\\@(link|linkplain)\\s+(.*?)\\}");
@@ -99,7 +108,7 @@ public class HtmlHandler {
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Version:</b> $1</div>");
 
-        return String.format("%s\n\t\t<style>body { font-family: sans-serif; font-size: 11pt; }" +
+        return String.format("%s\n\t\t<style>body { font-family: sans-serif; font-size: 11pt; padding-right: 20px; }" +
                 " .red { color: indianred; } </style>", input);
     }
 }

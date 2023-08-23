@@ -9,6 +9,7 @@ import com.github.espressopad.editor.TextEditorAutoComplete;
 import com.github.espressopad.io.ConsoleInputStream;
 import com.github.espressopad.io.ConsoleOutputStream;
 import com.github.espressopad.xml.XmlHandler;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -33,6 +34,7 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.Callback;
+import javafx.util.Duration;
 import jdk.jshell.JShell;
 import jdk.jshell.JShellException;
 import jdk.jshell.SnippetEvent;
@@ -255,7 +257,7 @@ public class EspressoPadController implements Initializable {
         return this.tacs;
     }
 
-    public void setupStageListener(Stage stage) {
+    public void setupStageListeners(Stage stage) {
         Rectangle2D screenBounds = Screen.getPrimary().getBounds();
         stage.focusedProperty().addListener(new ChangeListener<Boolean>() {
             @Override
@@ -292,6 +294,19 @@ public class EspressoPadController implements Initializable {
                     if (savedOpenFiles.containsKey(editor))
                         saveFile(editor);
                 }
+            }
+        });
+        stage.setOnShown(new EventHandler<WindowEvent>() {
+            @Override
+            public void handle(WindowEvent event) {
+                PauseTransition transition = new PauseTransition(Duration.seconds(.5));
+                transition.setOnFinished(new EventHandler<ActionEvent>() {
+                    @Override
+                    public void handle(ActionEvent event) {
+                        getCurrentTextEditor().getCodeArea().requestFocus();
+                    }
+                });
+                transition.play();
             }
         });
 
@@ -754,10 +769,9 @@ public class EspressoPadController implements Initializable {
     }
 
     public void toggleFindReplace(ActionEvent event) {
-        boolean findReplaceVisible = this.findReplaceBox.isVisible();
-        this.findReplaceBox.setVisible(!findReplaceVisible);
-        this.toggleFindReplaceMenuItem.setSelected(findReplaceVisible);
-        if (findReplaceVisible)
+        this.findReplaceBox.setVisible(!this.findReplaceBox.isVisible());
+        this.toggleFindReplaceMenuItem.setSelected(this.findReplaceBox.isVisible());
+        if (this.findReplaceBox.isVisible())
             this.findText.requestFocus();
     }
 
@@ -803,47 +817,23 @@ public class EspressoPadController implements Initializable {
         this.prevMatch.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
-                String findTxt = findText.getText();
-                CodeArea area = getCurrentTextEditor().getCodeArea();
-                TwoDimensional.Position caretPos = area.offsetToPosition(area.getCaretPosition(),
-                        TwoDimensional.Bias.Forward);
-                String txt = area.getText();
-                List<Integer> indices = indicesOf(txt, findTxt,
+                List<Integer> indices = indicesOf(getCurrentTextEditor().getCodeArea().getText(), findText.getText(),
                         !matchCase.isSelected(), matchRegex.isSelected(), matchWord.isSelected());
                 currentSelectionIndex--;
                 if (currentSelectionIndex < 0)
                     currentSelectionIndex = indices.size() - 1;
-                if (!indices.isEmpty()) {
-                    int j = indices.get(currentSelectionIndex);
-                    area.selectRange(j, j + findTxt.length());
-                    findResults.setText(String.format("Result %d of %d", currentSelectionIndex + 1, indices.size()));
-                } else {
-                    area.moveTo(caretPos.getMajor(), caretPos.getMinor());
-                    findResults.setText("No Results");
-                }
+                getSearchResults(indices);
             }
         });
         this.nextMatch.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
-                String findTxt = findText.getText();
-                CodeArea area = getCurrentTextEditor().getCodeArea();
-                TwoDimensional.Position caretPos = area.offsetToPosition(area.getCaretPosition(),
-                        TwoDimensional.Bias.Forward);
-                String txt = area.getText();
-                List<Integer> indices = indicesOf(txt, findTxt,
+                List<Integer> indices = indicesOf(getCurrentTextEditor().getCodeArea().getText(), findText.getText(),
                         !matchCase.isSelected(), matchRegex.isSelected(), matchWord.isSelected());
                 currentSelectionIndex++;
                 if (currentSelectionIndex >= indices.size())
                     currentSelectionIndex = 0;
-                if (!indices.isEmpty()) {
-                    int j = indices.get(currentSelectionIndex);
-                    area.selectRange(j, j + findTxt.length());
-                    findResults.setText(String.format("Result %d of %d", currentSelectionIndex + 1, indices.size()));
-                } else {
-                    area.moveTo(caretPos.getMajor(), caretPos.getMinor());
-                    findResults.setText("No Results");
-                }
+                getSearchResults(indices);
             }
         });
         this.replaceOne.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
@@ -851,9 +841,8 @@ public class EspressoPadController implements Initializable {
             public void handle(MouseEvent event) {
                 String findTxt = findText.getText();
                 CodeArea area = getCurrentTextEditor().getCodeArea();
-                String txt = area.getText();
 
-                List<Integer> indices = indicesOf(txt, findTxt,
+                List<Integer> indices = indicesOf(area.getText(), findTxt,
                         !matchCase.isSelected(), matchRegex.isSelected(), matchWord.isSelected());
                 if (!indices.isEmpty()) {
                     int j = indices.get(currentSelectionIndex);
@@ -872,15 +861,28 @@ public class EspressoPadController implements Initializable {
                         !matchCase.isSelected(), matchRegex.isSelected(), matchWord.isSelected());
                 if (!indices.isEmpty()) {
                     List<String> searches = indices.stream()
-                            .mapToInt(i -> i)
-                            .mapToObj(i -> area.getText(i, i + findTxt.length()))
+                            .map(i -> area.getText(i, i + findTxt.length()))
                             .collect(Collectors.toList());
-                    for (String s : searches) {
+                    for (String s : searches)
                         txt = txt.replace(s, replacementText.getText());
-                    }
                     area.replaceText(txt);
                 }
             }
         });
+    }
+
+    private void getSearchResults(List<Integer> indices) {
+        CodeArea area = this.getCurrentTextEditor().getCodeArea();
+        TwoDimensional.Position caretPos = area.offsetToPosition(area.getCaretPosition(),
+                TwoDimensional.Bias.Forward);
+
+        if (!indices.isEmpty()) {
+            int j = indices.get(currentSelectionIndex);
+            area.selectRange(j, j + this.findText.getText().length());
+            findResults.setText(String.format("Result %d of %d", currentSelectionIndex + 1, indices.size()));
+        } else {
+            area.moveTo(caretPos.getMajor(), caretPos.getMinor());
+            findResults.setText("No Results");
+        }
     }
 }

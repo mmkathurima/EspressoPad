@@ -17,8 +17,7 @@ public class EspressoPadMain extends Application {
         FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(this.getClass().getResource("espressopad.fxml")));
         Scene scene = new Scene(loader.load(), 800d, 600d);
         this.controller = loader.getController();
-        this.controller.setupStageListener(stage);
-        this.controller.getEditors().get(0).getCodeArea().requestFocus();
+        this.controller.setupStageListeners(stage);
 
         stage.setScene(scene);
         stage.setTitle("Espresso Pad");
