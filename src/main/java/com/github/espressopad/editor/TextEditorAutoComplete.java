@@ -7,7 +7,6 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
 import javafx.scene.control.ListView;
-import javafx.scene.control.TextArea;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -38,7 +37,6 @@ public class TextEditorAutoComplete {
     private List<String> keyphrases;
     private TwoDimensional.Position caretPos;
     private List<SnippetEvent> snippetEvents;
-    private TextArea output;
     private EspressoPadController controller;
     private String shelvedFileName = null;
     private File savedFile = null;
@@ -60,10 +58,6 @@ public class TextEditorAutoComplete {
 
     public JShell getShell() {
         return this.textEditor.shell;
-    }
-
-    public void setOutput(TextArea output) {
-        this.output = output;
     }
 
     public EspressoPadController getController() {
@@ -112,7 +106,6 @@ public class TextEditorAutoComplete {
     }
 
     private void showAutoCompletePopup() {
-        String text = this.textEditor.getCodeArea().getText();
         this.keyphrases = this.textEditor.shell.sourceCodeAnalysis()
                 .completionSuggestions(currentLine, currentLine.length(), new int[1])
                 .stream().map(SourceCodeAnalysis.Suggestion::continuation)
@@ -226,29 +219,33 @@ public class TextEditorAutoComplete {
         this.textEditor.getCodeArea().addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent event) {
-                if (event.getCode() == KeyCode.ENTER) {
-                    caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
-                            TwoDimensional.Bias.Forward);
-                    if (caretPos.getMinor() == 0) {
-                        String prevLine = textEditor.getCodeArea().getText(
-                                caretPos.getMajor() - ((caretPos.getMajor() > 0) ? 1 : 0));
-                        SourceCodeAnalysis.CompletionInfo completionInfo = textEditor.shell
-                                .sourceCodeAnalysis()
-                                .analyzeCompletion(prevLine);
-                        switch (completionInfo.completeness()) {
-                            case UNKNOWN:
-                            case DEFINITELY_INCOMPLETE:
-                            case EMPTY:
-                                return;
-                            case COMPLETE_WITH_SEMI:
-                            case COMPLETE:
-                                snippetEvents = textEditor.shell.eval(prevLine);
-                                break;
+                switch (event.getCode()) {
+                    case ENTER:
+                        caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
+                                TwoDimensional.Bias.Forward);
+                        if (caretPos.getMinor() == 0) {
+                            String prevLine = textEditor.getCodeArea().getText(
+                                    caretPos.getMajor() - ((caretPos.getMajor() > 0) ? 1 : 0));
+                            SourceCodeAnalysis.CompletionInfo completionInfo = textEditor.shell
+                                    .sourceCodeAnalysis()
+                                    .analyzeCompletion(prevLine);
+                            switch (completionInfo.completeness()) {
+                                case UNKNOWN:
+                                case DEFINITELY_INCOMPLETE:
+                                case EMPTY:
+                                    return;
+                                case COMPLETE_WITH_SEMI:
+                                case COMPLETE:
+                                    snippetEvents = textEditor.shell.eval(prevLine);
+                                    break;
+                            }
                         }
-                    }
-                } else if (event.isControlDown() && event.getCode() == KeyCode.SPACE) {
-                    showAutoCompletePopup();
-                    //showDocumentationPopup();
+                        break;
+                    case SPACE:
+                        if (event.isControlDown())
+                            showAutoCompletePopup();
+                        //showDocumentationPopup();
+                        break;
                 }
             }
         });

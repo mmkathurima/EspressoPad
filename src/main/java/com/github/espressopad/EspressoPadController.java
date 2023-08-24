@@ -22,6 +22,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
@@ -74,8 +75,6 @@ public class EspressoPadController implements Initializable {
     @FXML
     private VBox tabParent;
     @FXML
-    private SplitPane mainSplit;
-    @FXML
     private VBox findReplaceBox;
     @FXML
     private VBox outputPane;
@@ -124,6 +123,22 @@ public class EspressoPadController implements Initializable {
         return this.editors;
     }
 
+    public Map<TextEditor, File> getSavedOpenFiles() {
+        return this.savedOpenFiles;
+    }
+
+    public List<TextEditorAutoComplete> getAutocompletes() {
+        return this.tacs;
+    }
+
+    private TextEditor getCurrentTextEditor() {
+        return this.editors.get(this.tabPane.getSelectionModel().getSelectedIndex() + 1);
+    }
+
+    public JShell getShell() {
+        return shell;
+    }
+
     @Override
     @FXML
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -151,34 +166,15 @@ public class EspressoPadController implements Initializable {
                 this.shell.addToClasspath(s);
         }
 
-        this.run.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                runCode();
-            }
-        });
+        this.run.setOnAction(event -> runCode());
+        this.clear.setOnAction(event -> output.clear());
 
-        this.clear.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                output.clear();
-            }
-        });
+        this.treeView.addEventHandler(KeyEvent.KEY_RELEASED, event -> openFileFromTreeView());
         this.treeView.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
                 if (event.getClickCount() == 2) {
-                    TreeItem<File> treeItem = treeView.getSelectionModel().getSelectedItem();
-                    if (treeItem != null) {
-                        File file = treeItem.getValue();
-                        if (file != null) {
-                            try {
-                                openFile(file);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    }
+                    openFileFromTreeView();
                 }
             }
         });
@@ -209,6 +205,31 @@ public class EspressoPadController implements Initializable {
         }
     }
 
+    private void openFileFromTreeView() {
+        TreeItem<File> treeItem = treeView.getSelectionModel().getSelectedItem();
+        if (treeItem != null) {
+            File file = treeItem.getValue();
+            if (file != null) {
+                try {
+                    openFile(file);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+
+    private static String getFileExtension(String fileName) {
+        String extension = "";
+
+        int i = fileName.lastIndexOf('.');
+        int p = Math.max(fileName.lastIndexOf('/'), fileName.lastIndexOf('\\'));
+
+        if (i > p)
+            extension = fileName.substring(i + 1);
+        return extension;
+    }
+
     static boolean compareFilesByLine(Path path1, Path path2) {
         try (BufferedReader bf1 = Files.newBufferedReader(path1);
              BufferedReader bf2 = Files.newBufferedReader(path2)) {
@@ -223,38 +244,11 @@ public class EspressoPadController implements Initializable {
         }
     }
 
-    private TextEditor getCurrentTextEditor() {
-        return this.editors.get(this.tabPane.getSelectionModel().getSelectedIndex() + 1);
-    }
-
-    private static String getFileExtension(String fileName) {
-        String extension = "";
-
-        int i = fileName.lastIndexOf('.');
-        int p = Math.max(fileName.lastIndexOf('/'), fileName.lastIndexOf('\\'));
-
-        if (i > p)
-            extension = fileName.substring(i + 1);
-        return extension;
-    }
-
-    public JShell getShell() {
-        return shell;
-    }
-
     public void stop() throws IOException {
         this.in.close();
         this.out.close();
         this.printStream.close();
         this.shell.close();
-    }
-
-    public Map<TextEditor, File> getSavedOpenFiles() {
-        return this.savedOpenFiles;
-    }
-
-    public List<TextEditorAutoComplete> getAutocompletes() {
-        return this.tacs;
     }
 
     public void setupStageListeners(Stage stage) {
@@ -814,9 +808,9 @@ public class EspressoPadController implements Initializable {
     }
 
     private void initFindReplace() {
-        this.prevMatch.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        this.prevMatch.setOnAction(new EventHandler<ActionEvent>() {
             @Override
-            public void handle(MouseEvent event) {
+            public void handle(ActionEvent event) {
                 List<Integer> indices = indicesOf(getCurrentTextEditor().getCodeArea().getText(), findText.getText(),
                         !matchCase.isSelected(), matchRegex.isSelected(), matchWord.isSelected());
                 currentSelectionIndex--;
@@ -825,9 +819,9 @@ public class EspressoPadController implements Initializable {
                 getSearchResults(indices);
             }
         });
-        this.nextMatch.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        this.nextMatch.setOnAction(new EventHandler<ActionEvent>() {
             @Override
-            public void handle(MouseEvent event) {
+            public void handle(ActionEvent event) {
                 List<Integer> indices = indicesOf(getCurrentTextEditor().getCodeArea().getText(), findText.getText(),
                         !matchCase.isSelected(), matchRegex.isSelected(), matchWord.isSelected());
                 currentSelectionIndex++;
@@ -836,9 +830,9 @@ public class EspressoPadController implements Initializable {
                 getSearchResults(indices);
             }
         });
-        this.replaceOne.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        this.replaceOne.setOnAction(new EventHandler<ActionEvent>() {
             @Override
-            public void handle(MouseEvent event) {
+            public void handle(ActionEvent event) {
                 String findTxt = findText.getText();
                 CodeArea area = getCurrentTextEditor().getCodeArea();
 
@@ -850,9 +844,9 @@ public class EspressoPadController implements Initializable {
                 }
             }
         });
-        this.replaceAll.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        this.replaceAll.setOnAction(new EventHandler<ActionEvent>() {
             @Override
-            public void handle(MouseEvent event) {
+            public void handle(ActionEvent event) {
                 String findTxt = findText.getText();
                 CodeArea area = getCurrentTextEditor().getCodeArea();
                 String txt = area.getText();

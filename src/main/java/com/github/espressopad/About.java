@@ -2,6 +2,7 @@ package com.github.espressopad;
 
 import com.github.espressopad.editor.TextEditorConstants;
 import javafx.application.Application;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -43,18 +44,18 @@ public class About extends Application {
         productName.setFont(Font.font(Font.getDefault().getFamily(), FontWeight.EXTRA_BOLD, 36d));
         productName.setAlignment(Pos.CENTER);
 
-        Label details = new Label(String.format("v0.12\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
+        Label details = new Label(String.format("v0.13\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
                 System.getProperty("java.vm.vendor"), System.getProperty("java.vm.version"),
                 System.getProperty("os.arch"), System.getProperty("java.vm.name")));
         details.setAlignment(Pos.CENTER);
 
         Button closeBtn = new Button("OK");
-        closeBtn.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> stage.close());
+        closeBtn.setOnAction(e -> stage.close());
 
-        Button gitBtn = new Button();
-        gitBtn.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        Button githubLinkBtn = new Button();
+        githubLinkBtn.setOnAction(new EventHandler<ActionEvent>() {
             @Override
-            public void handle(MouseEvent event) {
+            public void handle(ActionEvent event) {
                 try {
                     Desktop.getDesktop().browse(new URL("https://www.github.com/Titans068").toURI());
                 } catch (IOException | URISyntaxException e) {
@@ -64,9 +65,9 @@ public class About extends Application {
         });
         FontIcon gitIcon = new FontIcon("fab-github");
         gitIcon.setIconSize(20);
-        gitBtn.setGraphic(gitIcon);
+        githubLinkBtn.setGraphic(gitIcon);
 
-        HBox btnBox = new HBox(closeBtn, gitBtn);
+        HBox btnBox = new HBox(closeBtn, githubLinkBtn);
         btnBox.setSpacing(10d);
 
         VBox vBox = new VBox(productName, details, textArea, btnBox);

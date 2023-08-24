@@ -1,7 +1,10 @@
 package com.github.espressopad.artifacts;
 
 import com.github.espressopad.xml.XmlHandler;
+import com.squareup.tools.maven.resolution.Artifact;
 import com.squareup.tools.maven.resolution.ArtifactResolver;
+import com.squareup.tools.maven.resolution.ResolvedArtifact;
+import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
@@ -22,15 +25,12 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 public class ArtifactManagerController implements Initializable {
-    private final XmlHandler handler = new XmlHandler();
     @FXML
     Button loadArtifacts;
     @FXML
     Button saveImports;
     @FXML
     private Button removeImportBtn;
-    @FXML
-    private Button addImportBtn;
     @FXML
     private Button removeArtifactBtn;
     @FXML
@@ -49,6 +49,12 @@ public class ArtifactManagerController implements Initializable {
     private Button dependencyResolver;
     @FXML
     ListView<String> importView;
+    @FXML
+    private ListView<String> searchResults;
+
+    private final XmlHandler handler = new XmlHandler();
+    // creates a resolver with repo list defaulting to Maven Central.
+    private final ArtifactResolver resolver = new ArtifactResolver();
 
     XmlHandler getHandler() {
         return handler;
@@ -82,9 +88,11 @@ public class ArtifactManagerController implements Initializable {
         this.importView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                removeImportBtn.setVisible(newValue != null);
+                removeImportBtn.setDisable(newValue == null);
             }
         });
+
+        this.removeArtifactBtn.disableProperty().bind(Bindings.isEmpty(this.artifactView.getItems()));
         if (this.handler.getArtifactFile().exists())
             this.artifactView.getItems().addAll(this.handler.parseArtifactXml());
 
@@ -98,24 +106,28 @@ public class ArtifactManagerController implements Initializable {
         File file = chooser.showOpenDialog(this.jarFinder.getScene().getWindow());
         if (file != null) {
             this.artifactView.getItems().add(file.getPath());
-            this.loadArtifacts.setVisible(true);
-            this.removeArtifactBtn.setVisible(true);
-        } else {
-            this.loadArtifacts.setVisible(false);
-            this.removeArtifactBtn.setVisible(false);
-        }
+            this.loadArtifacts.setDisable(false);
+        } else this.loadArtifacts.setDisable(true);
     }
 
     public void resolveDependencies(ActionEvent event) {
+        Artifact artifact = this.resolver.artifactFor(this.dependencyQuery.getText());
+        ResolvedArtifact resolvedArtifact = this.resolver.resolveArtifact(artifact);
+        if (resolvedArtifact != null) {
+            this.searchResults.getItems().setAll(String.format("%s:%s:%s", resolvedArtifact.getArtifactId(),
+                    resolvedArtifact.getGroupId(), resolvedArtifact.getVersion()));
+            this.loadArtifacts.setDisable(false);
+        } else {
+            this.searchResults.getItems().setAll(String.format("No results found for %s", this.dependencyQuery.getText()));
+            this.loadArtifacts.setDisable(true);
+        }
+    }
+
+    void downloadArtifacts() {
         try {
-            ArtifactResolver resolver = new ArtifactResolver(); // creates a resolver with repo list defaulting to Maven Central.
-            Pair<Path, Path> dep = resolver.download(dependencyQuery.getText());
-            this.artifactView.getItems().add(dep.getSecond().toString());
-            this.loadArtifacts.setVisible(true);
-            this.removeArtifactBtn.setVisible(true);
+            Pair<Path, Path> dependency = this.resolver.download(dependencyQuery.getText());
+            this.artifactView.getItems().add(dependency.getSecond().toString());
         } catch (IOException e) {
-            this.loadArtifacts.setVisible(false);
-            this.removeArtifactBtn.setVisible(false);
             throw new RuntimeException(e);
         }
     }
@@ -128,8 +140,11 @@ public class ArtifactManagerController implements Initializable {
 
     public void addImport(ActionEvent event) {
         String importStmtText = this.importStmt.getText();
-        if (!importStmtText.isBlank())
+        if (!importStmtText.isBlank() && !this.importView.getItems().contains(importStmtText)) {
             this.importView.getItems().add(importStmtText);
+            this.importStmt.clear();
+            this.importStmt.requestFocus();
+        }
     }
 
     public void removeImport(ActionEvent event) {

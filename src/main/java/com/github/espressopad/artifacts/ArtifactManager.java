@@ -3,6 +3,7 @@ package com.github.espressopad.artifacts;
 import com.github.espressopad.EspressoPadController;
 import com.github.espressopad.editor.TextEditorAutoComplete;
 import javafx.application.Application;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -29,9 +30,10 @@ public class ArtifactManager extends Application {
                 .getResource("artifactmanager.fxml")));
         Scene scene = new Scene(loader.load());
         this.controller = loader.getController();
-        this.controller.loadArtifacts.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        this.controller.loadArtifacts.setOnAction(new EventHandler<ActionEvent>() {
             @Override
-            public void handle(MouseEvent event) {
+            public void handle(ActionEvent event) {
+                controller.downloadArtifacts();
                 List<String> artifacts = controller.getArtifacts();
                 if (artifacts != null && !artifacts.isEmpty()) {
                     System.out.printf("Artifacts: %s\n", artifacts);
@@ -49,9 +51,9 @@ public class ArtifactManager extends Application {
                 }
             }
         });
-        this.controller.saveImports.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        this.controller.saveImports.setOnAction(new EventHandler<ActionEvent>() {
             @Override
-            public void handle(MouseEvent event) {
+            public void handle(ActionEvent event) {
                 String importList = controller.getImports()
                         .stream()
                         .map(x -> String.format("import %s;", x))

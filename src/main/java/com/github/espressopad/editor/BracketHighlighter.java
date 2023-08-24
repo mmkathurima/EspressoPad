@@ -8,7 +8,6 @@ import java.util.Iterator;
 import java.util.List;
 
 public class BracketHighlighter {
-
     // the code area
     private final CustomCodeArea codeArea;
 
@@ -26,9 +25,7 @@ public class BracketHighlighter {
      */
     public BracketHighlighter(CustomCodeArea codeArea) {
         this.codeArea = codeArea;
-
         this.bracketPairs = new ArrayList<>();
-
         // listen for changes in text or caret position
         this.codeArea.addTextInsertionListener((start, end, text) -> clearBracket());
         this.codeArea.caretPositionProperty().addListener((obs, oldVal, newVal) -> Platform.runLater(() -> highlightBracket(newVal)));
@@ -55,15 +52,13 @@ public class BracketHighlighter {
         if (BRACKET_PAIRS.contains(prevChar)) newVal--;
 
         // get other half of matching bracket
-        Integer other = getMatchingBracket(newVal);
+        Integer other = this.getMatchingBracket(newVal);
 
         if (other != null) {
             // other half exists
             BracketPair pair = new BracketPair(newVal, other);
-
             // highlight pair
-            styleBrackets(pair, MATCH_STYLE);
-
+            this.styleBrackets(pair, MATCH_STYLE);
             // add bracket pair to list
             this.bracketPairs.add(pair);
         }
@@ -76,15 +71,15 @@ public class BracketHighlighter {
      * @return null or position of matching bracket
      */
     private Integer getMatchingBracket(int index) {
-        if (index < 0 || index >= codeArea.getLength()) return null;
+        if (index < 0 || index >= this.codeArea.getLength()) return null;
 
-        char initialBracket = codeArea.getText(index, index + 1).charAt(0);
+        char initialBracket = this.codeArea.getText(index, index + 1).charAt(0);
         int bracketTypePosition = BRACKET_PAIRS.indexOf(initialBracket); // "(){}[]<>"
         if (bracketTypePosition < 0) return null;
 
         // even numbered bracketTypePositions are opening brackets, and odd positions are closing
         // if even (opening bracket) then step forwards, otherwise step backwards
-        int stepDirection = ( bracketTypePosition % 2 == 0 ) ? +1 : -1;
+        int stepDirection = (bracketTypePosition % 2 == 0) ? +1 : -1;
 
         // the matching bracket to look for, the opposite of initialBracket
         char match = BRACKET_PAIRS.charAt(bracketTypePosition + stepDirection);
@@ -93,7 +88,7 @@ public class BracketHighlighter {
         int bracketCount = 1;
 
         while (index > -1 && index < codeArea.getLength()) {
-            char code = codeArea.getText(index, index + 1).charAt(0);
+            char code = this.codeArea.getText(index, index + 1).charAt(0);
             if (code == initialBracket) bracketCount++;
             else if (code == match) bracketCount--;
             if (bracketCount == 0) return index;
@@ -114,10 +109,8 @@ public class BracketHighlighter {
         while (iterator.hasNext()) {
             // get next bracket pair
             BracketPair pair = iterator.next();
-
             // clear pair
-            styleBrackets(pair, CLEAR_STYLE);
-
+            this.styleBrackets(pair, CLEAR_STYLE);
             // remove bracket pair from list
             iterator.remove();
         }
@@ -126,26 +119,25 @@ public class BracketHighlighter {
     /**
      * Set a list of styles to a pair of brackets
      *
-     * @param pair pair of brackets
+     * @param pair   pair of brackets
      * @param styles the style list to set
      */
     private void styleBrackets(BracketPair pair, List<String> styles) {
-        styleBracket(pair.start, styles);
-        styleBracket(pair.end, styles);
+        this.styleBracket(pair.start, styles);
+        this.styleBracket(pair.end, styles);
     }
 
     /**
      * Set a list of styles for a position
      *
-     * @param pos the position
+     * @param pos    the position
      * @param styles the style list to set
      */
     private void styleBracket(int pos, List<String> styles) {
-        if (pos < codeArea.getLength()) {
-            String text = codeArea.getText(pos, pos + 1);
-            if (BRACKET_PAIRS.contains(text)) {
-                codeArea.setStyle(pos, pos + 1, styles);
-            }
+        if (pos < this.codeArea.getLength()) {
+            String text = this.codeArea.getText(pos, pos + 1);
+            if (BRACKET_PAIRS.contains(text))
+                this.codeArea.setStyle(pos, pos + 1, styles);
         }
     }
 
@@ -153,7 +145,6 @@ public class BracketHighlighter {
      * Class representing a pair of matching bracket indices
      */
     static class BracketPair {
-
         private int start;
         private int end;
 

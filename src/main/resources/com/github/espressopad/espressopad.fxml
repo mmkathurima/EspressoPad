@@ -49,7 +49,7 @@
             <TreeView fx:id="treeView"/>
             <WebView fx:id="documentationView"/>
         </SplitPane>
-        <SplitPane fx:id="mainSplit" dividerPositions="0.7" orientation="VERTICAL">
+        <SplitPane dividerPositions="0.7" orientation="VERTICAL">
             <VBox fx:id="tabParent">
                 <HBox>
                     <Button fx:id="run" text="Run">

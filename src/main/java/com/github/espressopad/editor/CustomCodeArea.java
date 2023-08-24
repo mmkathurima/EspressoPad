@@ -26,20 +26,19 @@ public class CustomCodeArea extends CodeArea {
     }
 
     public void addTextInsertionListener(TextInsertionListener listener) {
-        insertionListeners.add(listener);
+        this.insertionListeners.add(listener);
     }
 
     public void removeTextInsertionListener(TextInsertionListener listener) {
-        insertionListeners.remove(listener);
+        this.insertionListeners.remove(listener);
     }
 
     @Override
     public void replace(int start, int end, StyledDocument<Collection<String>, String, Collection<String>> replacement) {
         // notify all listeners
-        for (TextInsertionListener listener : insertionListeners) {
+        for (TextInsertionListener listener : this.insertionListeners) {
             listener.codeInserted(start, end, replacement.getText());
         }
-
         super.replace(start, end, replacement);
     }
 }
