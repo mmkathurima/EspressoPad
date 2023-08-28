@@ -10,7 +10,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
@@ -44,7 +43,7 @@ public class About extends Application {
         productName.setFont(Font.font(Font.getDefault().getFamily(), FontWeight.EXTRA_BOLD, 36d));
         productName.setAlignment(Pos.CENTER);
 
-        Label details = new Label(String.format("v0.13\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
+        Label details = new Label(String.format("v0.14\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
                 System.getProperty("java.vm.vendor"), System.getProperty("java.vm.version"),
                 System.getProperty("os.arch"), System.getProperty("java.vm.name")));
         details.setAlignment(Pos.CENTER);

@@ -23,25 +23,9 @@ import java.util.regex.Matcher;
 public class TextEditor {
     private final CustomCodeArea codeArea;
     private final ExecutorService executor;
-    private Subscription subscriber;
-    protected JShell shell;
     private final Tab tab;
-
-    public Subscription getSubscriber() {
-        return subscriber;
-    }
-
-    protected void setSubscriber(Subscription subscriber) {
-        this.subscriber = subscriber;
-    }
-
-    public CodeArea getCodeArea() {
-        return codeArea;
-    }
-
-    public Tab getTab() {
-        return this.tab;
-    }
+    protected JShell shell;
+    private Subscription subscriber;
 
     public TextEditor(Tab tab) {
         this.tab = tab;
@@ -73,11 +57,6 @@ public class TextEditor {
         tab.getTabPane().getStylesheets().add(this.getClass().getResource("editor.css").toExternalForm());
     }
 
-    public void stop() throws IOException {
-        this.executor.shutdown();
-        this.shell.stop();
-    }
-
     private static StyleSpans<Collection<String>> computeHighlighting(String text) {
         Matcher matcher = TextEditorConstants.PATTERN.matcher(text);
         int lastKwEnd = 0;
@@ -100,6 +79,27 @@ public class TextEditor {
         }
         spansBuilder.add(Collections.emptyList(), text.length() - lastKwEnd);
         return spansBuilder.create();
+    }
+
+    public Subscription getSubscriber() {
+        return subscriber;
+    }
+
+    protected void setSubscriber(Subscription subscriber) {
+        this.subscriber = subscriber;
+    }
+
+    public CodeArea getCodeArea() {
+        return codeArea;
+    }
+
+    public Tab getTab() {
+        return this.tab;
+    }
+
+    public void stop() throws IOException {
+        this.executor.shutdown();
+        this.shell.stop();
     }
 
     private Task<StyleSpans<Collection<String>>> computeHighlightingAsync() {

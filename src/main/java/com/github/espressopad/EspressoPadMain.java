@@ -12,6 +12,10 @@ import java.util.Objects;
 public class EspressoPadMain extends Application {
     private EspressoPadController controller;
 
+    public static void main(String[] args) {
+        launch(args);
+    }
+
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(this.getClass().getResource("espressopad.fxml")));
@@ -22,10 +26,6 @@ public class EspressoPadMain extends Application {
         stage.setScene(scene);
         stage.setTitle("Espresso Pad");
         stage.show();
-    }
-
-    public static void main(String[] args) {
-        launch(args);
     }
 
     @Override

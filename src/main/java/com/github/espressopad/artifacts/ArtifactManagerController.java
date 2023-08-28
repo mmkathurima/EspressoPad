@@ -25,10 +25,15 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 public class ArtifactManagerController implements Initializable {
+    private final XmlHandler handler = new XmlHandler();
+    // creates a resolver with repo list defaulting to Maven Central.
+    private final ArtifactResolver resolver = new ArtifactResolver();
     @FXML
     Button loadArtifacts;
     @FXML
     Button saveImports;
+    @FXML
+    ListView<String> importView;
     @FXML
     private Button removeImportBtn;
     @FXML
@@ -48,13 +53,7 @@ public class ArtifactManagerController implements Initializable {
     @FXML
     private Button dependencyResolver;
     @FXML
-    ListView<String> importView;
-    @FXML
     private ListView<String> searchResults;
-
-    private final XmlHandler handler = new XmlHandler();
-    // creates a resolver with repo list defaulting to Maven Central.
-    private final ArtifactResolver resolver = new ArtifactResolver();
 
     XmlHandler getHandler() {
         return handler;

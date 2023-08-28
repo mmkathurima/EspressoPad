@@ -2,21 +2,11 @@ package com.github.espressopad.io;
 
 import com.github.espressopad.EspressoPadController;
 import javafx.application.Platform;
-import javafx.scene.web.WebEngine;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 import org.unbescape.html.HtmlEscape;
 
-import java.io.OutputStream;
-
-public class ConsoleOutputStream extends OutputStream {
-    protected final EspressoPadController controller;
-    protected Document document;
-    protected WebEngine engine;
-    protected Element element;
-
-    public ConsoleOutputStream(EspressoPadController controller) {
-        this.controller = controller;
+public class ConsoleErrorStream extends ConsoleOutputStream {
+    public ConsoleErrorStream(EspressoPadController controller) {
+        super(controller);
     }
 
     @Override
@@ -40,7 +30,7 @@ public class ConsoleOutputStream extends OutputStream {
                         break;
                     default:
                         // Append other characters as text
-                        element.append(String.valueOf(c));
+                        element.append(String.format("<span class=\"err\">%c</span>", c));
                         break;
                 }
                 engine.loadContent(HtmlEscape.unescapeHtml(document.outerHtml()), "text/html");

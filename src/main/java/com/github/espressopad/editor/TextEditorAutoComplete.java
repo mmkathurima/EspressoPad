@@ -307,6 +307,8 @@ public class TextEditorAutoComplete {
             for (String s : handler.parseArtifactXml())
                 shell.addToClasspath(s);
         }
+        Path dumpFile = Path.of(System.getProperty("user.dir"), "libs", "dump.jar");
+        shell.addToClasspath(dumpFile.toString());
         if (handler.getImportsFile().exists())
             shell.eval(handler.parseImportXml()
                     .stream()

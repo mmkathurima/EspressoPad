@@ -18,6 +18,8 @@ module com.github.espressopad {
     requires kotlin.stdlib;
     requires kotlin.stdlib.common;
     requires jAstyle;
+    requires org.jsoup;
+    requires unbescape;
 
     opens com.github.espressopad;
     exports com.github.espressopad;

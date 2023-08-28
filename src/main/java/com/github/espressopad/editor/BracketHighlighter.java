@@ -1,6 +1,8 @@
 package com.github.espressopad.editor;
 
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -8,27 +10,41 @@ import java.util.Iterator;
 import java.util.List;
 
 public class BracketHighlighter {
-    // the code area
-    private final CustomCodeArea codeArea;
-
-    // the list of highlighted bracket pairs
-    private final List<BracketPair> bracketPairs;
-
     // constants
     private static final List<String> CLEAR_STYLE = Collections.singletonList("unmatchBracket");
     private static final List<String> MATCH_STYLE = Collections.singletonList("matchBracket");
     private static final String BRACKET_PAIRS = "(){}[]<>";
+    // the code area
+    private final CustomCodeArea codeArea;
+    // the list of highlighted bracket pairs
+    private final List<BracketPair> bracketPairs;
 
     /**
      * Parameterized constructor
+     *
      * @param codeArea the code area
      */
     public BracketHighlighter(CustomCodeArea codeArea) {
         this.codeArea = codeArea;
         this.bracketPairs = new ArrayList<>();
         // listen for changes in text or caret position
-        this.codeArea.addTextInsertionListener((start, end, text) -> clearBracket());
-        this.codeArea.caretPositionProperty().addListener((obs, oldVal, newVal) -> Platform.runLater(() -> highlightBracket(newVal)));
+        this.codeArea.addTextInsertionListener(new TextInsertionListener() {
+            @Override
+            public void codeInserted(int start, int end, String text) {
+                BracketHighlighter.this.clearBracket();
+            }
+        });
+        this.codeArea.caretPositionProperty().addListener(new ChangeListener<Integer>() {
+            @Override
+            public void changed(ObservableValue<? extends Integer> obs, Integer oldVal, Integer newVal) {
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        BracketHighlighter.this.highlightBracket(newVal);
+                    }
+                });
+            }
+        });
     }
 
     /**
@@ -48,7 +64,10 @@ public class BracketHighlighter {
         this.clearBracket();
 
         // detect caret position both before and after bracket
-        String prevChar = (newVal > 0 && newVal <= codeArea.getLength()) ? codeArea.getText(newVal - 1, newVal) : "";
+        String prevChar;
+        if (newVal > 0 && newVal <= codeArea.getLength())
+            prevChar = codeArea.getText(newVal - 1, newVal);
+        else prevChar = "";
         if (BRACKET_PAIRS.contains(prevChar)) newVal--;
 
         // get other half of matching bracket
@@ -79,7 +98,7 @@ public class BracketHighlighter {
 
         // even numbered bracketTypePositions are opening brackets, and odd positions are closing
         // if even (opening bracket) then step forwards, otherwise step backwards
-        int stepDirection = (bracketTypePosition % 2 == 0) ? +1 : -1;
+        int stepDirection = (bracketTypePosition % 2 == 0) ? 1 : -1;
 
         // the matching bracket to look for, the opposite of initialBracket
         char match = BRACKET_PAIRS.charAt(bracketTypePosition + stepDirection);
@@ -145,8 +164,8 @@ public class BracketHighlighter {
      * Class representing a pair of matching bracket indices
      */
     static class BracketPair {
-        private int start;
-        private int end;
+        private final int start;
+        private final int end;
 
         public BracketPair(int start, int end) {
             this.start = start;
@@ -163,12 +182,7 @@ public class BracketHighlighter {
 
         @Override
         public String toString() {
-            return "BracketPair{" +
-                    "start=" + start +
-                    ", end=" + end +
-                    '}';
+            return "BracketPair{" + "start=" + start + ", end=" + end + '}';
         }
-
     }
-
 }

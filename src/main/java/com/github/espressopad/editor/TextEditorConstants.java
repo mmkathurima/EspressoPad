@@ -3,7 +3,14 @@ package com.github.espressopad.editor;
 import java.util.regex.Pattern;
 
 public class TextEditorConstants {
-
+    public static final String[] properties = {
+            "java.home", "java.vendor", "java.version", "sun.desktop", "os.name", "os.version",
+            "os.arch", "user.name", "user.dir", "user.home", "user.language", "sun.cpu.isalist",
+            "sun.arch.data.model", "java.io.tmpdir", "sun.jnu.encoding", "sun.boot.library.path",
+            "java.class.version"
+    };
+    protected static final String sampleCode = "IntStream stream = IntStream.rangeClosed(0, 10)\n" +
+            "stream.forEach(x -> System.out.println(x));";
     private static final String[] KEYWORDS = new String[]{
             "abstract", "assert", "boolean", "break", "byte",
             "case", "catch", "char", "class", "const",
@@ -17,7 +24,6 @@ public class TextEditorConstants {
             "throws", "transient", "try", "var", "void",
             "volatile", "while"
     };
-
     private static final String KEYWORD_PATTERN = "\\b(" + String.join("|", KEYWORDS) + ")\\b";
     private static final String PAREN_PATTERN = "\\(|\\)";
     private static final String BRACE_PATTERN = "\\{|\\}";
@@ -25,7 +31,6 @@ public class TextEditorConstants {
     private static final String SEMICOLON_PATTERN = "\\;";
     private static final String STRING_PATTERN = "\"([^\"\\\\]|\\\\.)*\"";
     private static final String COMMENT_PATTERN = "//[^\n]*" + "|" + "/\\*(.|\\R)*?\\*/";
-
     protected static final Pattern PATTERN = Pattern.compile(
             "(?<KEYWORD>" + KEYWORD_PATTERN + ")"
                     + "|(?<PAREN>" + PAREN_PATTERN + ")"
@@ -35,15 +40,5 @@ public class TextEditorConstants {
                     + "|(?<STRING>" + STRING_PATTERN + ")"
                     + "|(?<COMMENT>" + COMMENT_PATTERN + ")"
     );
-
-    protected static final String sampleCode = "IntStream stream = IntStream.rangeClosed(0, 10)\n" +
-            "stream.forEach(x -> System.out.println(x));";
-    public static final String[] properties = {
-            "java.home", "java.vendor", "java.version", "sun.desktop", "os.name", "os.version",
-            "os.arch", "user.name", "user.dir", "user.home", "user.language", "sun.cpu.isalist",
-            "sun.arch.data.model", "java.io.tmpdir", "sun.jnu.encoding", "sun.boot.library.path",
-            "java.class.version"
-    };
-
 }
 

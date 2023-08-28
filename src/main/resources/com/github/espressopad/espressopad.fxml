@@ -6,7 +6,7 @@
 <?import javafx.scene.text.Text?>
 <?import javafx.scene.web.WebView?>
 <?import org.kordamp.ikonli.javafx.*?>
-<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml/1" fx:id="mainBox"
+<VBox xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx" fx:id="mainBox"
       fx:controller="com.github.espressopad.EspressoPadController" prefWidth="600" prefHeight="500">
     <MenuBar>
         <Menu text="File">
@@ -52,7 +52,7 @@
         <SplitPane dividerPositions="0.7" orientation="VERTICAL">
             <VBox fx:id="tabParent">
                 <HBox>
-                    <Button fx:id="run" text="Run">
+                    <Button text="Run" onAction="#runCode">
                         <graphic>
                             <FontIcon iconLiteral="fas-caret-right" iconSize="20"/>
                         </graphic>
@@ -65,7 +65,7 @@
                     <VBox fx:id="findReplaceBox" visible="false">
                         <HBox spacing="5">
                             <TextField fx:id="findText" promptText="Find"/>
-                            <Button fx:id="prevMatch">
+                            <Button onAction="#getPreviousMatch">
                                 <graphic>
                                     <FontIcon iconLiteral="fas-arrow-up"/>
                                 </graphic>
@@ -73,7 +73,7 @@
                                     <Tooltip text="Previous match"/>
                                 </tooltip>
                             </Button>
-                            <Button fx:id="nextMatch">
+                            <Button onAction="#getNextMatch">
                                 <graphic>
                                     <FontIcon iconLiteral="fas-arrow-down"/>
                                 </graphic>
@@ -96,7 +96,8 @@
                                     <Tooltip text="Match Regex"/>
                                 </tooltip>
                             </ToggleButton>
-                            <Label fx:id="findResults"/>
+                            <Text fx:id="findResults"/>
+                            <Region HBox.hgrow="ALWAYS"/>
                             <Button onAction="#toggleFindReplace">
                                 <graphic>
                                     <FontIcon iconLiteral="fas-times"/>
@@ -106,13 +107,13 @@
                                 </tooltip>
                             </Button>
                             <padding>
-                                <Insets bottom="5.0" left="10.0" top="5.0"/>
+                                <Insets bottom="5.0" left="10.0" top="5.0" right="10.0"/>
                             </padding>
                         </HBox>
                         <HBox spacing="5">
                             <TextField fx:id="replacementText" promptText="Replace"/>
-                            <Button fx:id="replaceOne" text="Replace"/>
-                            <Button fx:id="replaceAll" text="Replace All"/>
+                            <Button onAction="#replaceOneMatch" text="Replace"/>
+                            <Button onAction="#replaceAllMatches" text="Replace All"/>
                             <padding>
                                 <Insets bottom="5.0" left="10.0" top="5.0"/>
                             </padding>
@@ -124,7 +125,7 @@
             <VBox fx:id="outputPane">
                 <HBox spacing="20">
                     <Text text="Output"/>
-                    <Button fx:id="clear" text="Clear">
+                    <Button text="Clear" onAction="#clearOutput">
                         <graphic>
                             <FontIcon iconLiteral="fas-trash-alt" iconSize="12"/>
                         </graphic>
@@ -133,7 +134,7 @@
                         <Insets bottom="5.0" left="10.0" top="5.0"/>
                     </padding>
                 </HBox>
-                <TextArea fx:id="output" editable="false" wrapText="true"/>
+                <WebView fx:id="output"/>
             </VBox>
         </SplitPane>
     </SplitPane>

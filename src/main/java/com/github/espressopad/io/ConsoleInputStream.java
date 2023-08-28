@@ -2,14 +2,13 @@ package com.github.espressopad.io;
 
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
-import java.io.IOException;
 import java.io.InputStream;
 
 public class ConsoleInputStream extends InputStream {
     private final StringBuilder buffer = new StringBuilder();
 
     @Override
-    public int read() throws IOException {
+    public int read() {
         if (this.buffer.length() == 0) {
             JOptionPane optionPane = new JOptionPane("Enter input:", JOptionPane.QUESTION_MESSAGE,
                     JOptionPane.OK_CANCEL_OPTION);

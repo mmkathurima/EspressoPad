@@ -156,6 +156,11 @@ public class XmlHandler {
             List<String> importList = new ArrayList<>();
             for (int i = 0; i < imports.getLength(); i++)
                 importList.add(imports.item(i).getTextContent());
+
+            String pkg = this.getClass().getPackageName();
+            pkg = String.format("static %s.dump.DumpHtml.*", pkg.substring(0, pkg.lastIndexOf('.')));
+            importList.add(pkg);
+
             return importList;
         } catch (ParserConfigurationException | SAXException | IOException e) {
             throw new RuntimeException(e);
