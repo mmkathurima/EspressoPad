@@ -1,6 +1,7 @@
 package com.github.espressopad;
 
 import com.github.espressopad.editor.TextEditor;
+import com.jthemedetecor.OsThemeDetector;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -23,6 +24,8 @@ public class EspressoPadMain extends Application {
         this.controller = loader.getController();
         this.controller.setupStageListeners(stage);
 
+        setThemeResource(scene);
+
         stage.setScene(scene);
         stage.setTitle("Espresso Pad");
         stage.show();
@@ -40,5 +43,12 @@ public class EspressoPadMain extends Application {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static void setThemeResource(Scene scene) {
+        String darkStyle = EspressoPadMain.class.getResource("dark-theme.css").toExternalForm();
+        if (OsThemeDetector.isSupported() && OsThemeDetector.getDetector().isDark())
+            scene.getStylesheets().add(darkStyle);
+        else scene.getStylesheets().remove(darkStyle);
     }
 }

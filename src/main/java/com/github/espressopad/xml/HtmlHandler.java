@@ -8,21 +8,17 @@ public class HtmlHandler {
     public static String convertJavaDoc(String input) {
         // Define regular expressions for JavaDoc tags
         // You can add more patterns for other JavaDoc tags as needed
-        /*input = input.replaceAll("&", "&amp")
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")
-                .replaceAll("'", "&#39;")
-                .replaceAll("\"", "&quot;");*/
+        if (input == null || input.isBlank()) return "";
 
-        Pattern pattern = Pattern.compile("@author\\s+(.*?)");
+        Pattern pattern = Pattern.compile("@author[\\s\\t\\n\\r\\f\\v]+(.*?)");
         Matcher matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Author: </b>$1</div>");
 
-        pattern = Pattern.compile("@apiNote\\s+(.*?)");
+        pattern = Pattern.compile("@apiNote[\\s\\t\\n\\r\\f\\v]+(.*?)");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>API Note: </b>$1</div>");
 
-        pattern = Pattern.compile("\\{\\@code\\s+(.*?)\\}");
+        pattern = Pattern.compile("\\{\\@code[\\s\\t\\n\\r\\f\\v]+(.*?)\\}");
         // Replace {@code ...} with <code>...</code>
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("<code>$1</code>");
@@ -32,11 +28,11 @@ public class HtmlHandler {
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("<pre><code>$1</code></pre>");
 
-        pattern = Pattern.compile("@deprecated\\s+(.*?)");
+        pattern = Pattern.compile("@deprecated[\\s\\t\\n\\r\\f\\v]+(.*?)");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Deprecated: </b>$1</div>");
 
-        pattern = Pattern.compile("\\{*\\@(exception|throws)\\s+(.*?)\\}*");
+        pattern = Pattern.compile("\\{*\\@(exception|throws)[\\s\\t\\n\\r\\f\\v]+(.*?)\\}*");
         matcher = pattern.matcher(input);
         while (matcher.find())
             input = matcher.replaceAll("\n\t\t<div><b>Exception:</b> $2</div>");
@@ -45,24 +41,24 @@ public class HtmlHandler {
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("<div><b>Exception:</b>&nbsp;<span class='red'>$1</span>");
 
-        pattern = Pattern.compile("@implNote\\s+(.*?)");
+        pattern = Pattern.compile("@implNote[\\s\\t\\n\\r\\f\\v]+(.*?)");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Implementation Note: </b>$1</div>");
 
-        pattern = Pattern.compile("@implSpec\\s+(.*?)");
+        pattern = Pattern.compile("@implSpec[\\s\\t\\n\\r\\f\\v]+(.*?)");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Implementation Spec: </b>$1</div>");
 
-        pattern = Pattern.compile("@jls\\s+(.*?)");
+        pattern = Pattern.compile("@jls[\\s\\t\\n\\r\\f\\v]+(.*?)");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>jls: </b>$1</div>");
 
         // Replace {@link ...} with <a href="...">...</a>
-        pattern = Pattern.compile("\\{\\@(link|linkplain)\\s+(.*?)\\}");
+        pattern = Pattern.compile("\\{\\@(link|linkplain)[\\s\\t\\n\\r\\f\\v]+(.*?)\\}");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("<a href=\"$2\">$2</a>");
 
-        pattern = Pattern.compile("\\{*@param\\s+(.*?)\\}*");
+        pattern = Pattern.compile("\\{*@param[\\s\\t\\n\\r\\f\\v]+(.*?)\\}*");
         matcher = pattern.matcher(input);
         while (matcher.find())
             input = matcher.replaceAll("\n\t\t<div><b>Parameter:</b>&nbsp;$1</div>");
@@ -72,43 +68,44 @@ public class HtmlHandler {
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("<b>Parameter:</b>&nbsp;</div><span class='red'>$1</span>&nbsp;-");
 
-        pattern = Pattern.compile("\\{*\\@return\\s+(.*?)\\}*");
+        pattern = Pattern.compile("\\{*\\@return[\\s\\t\\n\\r\\f\\v]+(.*?)\\}*");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Returns:</b> $1</div>");
 
-        pattern = Pattern.compile("\\{*\\@see\\s+(.*?)\\}*");
+        pattern = Pattern.compile("\\{*\\@see[\\s\\t\\n\\r\\f\\v]+(.*?)\\}*");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>See Also:</b> $1</div>");
 
-        pattern = Pattern.compile("\\{*\\@serial\\s+(.*?)\\}*");
+        pattern = Pattern.compile("\\{*\\@serial[\\s\\t\\n\\r\\f\\v]+(.*?)\\}*");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Serial:</b> $1</div>");
 
-        pattern = Pattern.compile("\\{*\\@serialData\\s+(.*?)\\}*");
+        pattern = Pattern.compile("\\{*\\@serialData[\\s\\t\\n\\r\\f\\v]+(.*?)\\}*");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Serial Data:</b> $1</div>");
 
-        pattern = Pattern.compile("\\{*\\@serialField\\s+(.*?)\\}*");
+        pattern = Pattern.compile("\\{*\\@serialField[\\s\\t\\n\\r\\f\\v]+(.*?)\\}*");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Serial Field:</b> $1</div>");
 
-        pattern = Pattern.compile("\\{*\\@since\\s+(.*?)\\}*");
+        pattern = Pattern.compile("\\{*\\@since[\\s\\t\\n\\r\\f\\v]+(.*?)\\}*");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Since:</b> $1</div>");
 
-        pattern = Pattern.compile("@spec\\s+(.*?)");
+        pattern = Pattern.compile("@spec[\\s\\t\\n\\r\\f\\v]+(.*?)");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Spec: </b>$1</div>");
 
-        pattern = Pattern.compile("\\{\\@value\\s+(.*?)\\}");
+        pattern = Pattern.compile("\\{\\@value[\\s\\t\\n\\r\\f\\v]+(.*?)\\}");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><pre><code>$1</code></pre></div>");
 
-        pattern = Pattern.compile("\\{*\\@version\\s+(.*?)\\}*");
+        pattern = Pattern.compile("\\{*\\@version[\\s\\t\\n\\r\\f\\v]+(.*?)\\}*");
         matcher = pattern.matcher(input);
         input = matcher.replaceAll("\n\t\t<div><b>Version:</b> $1</div>");
 
-        return String.format("%s\n\t\t<style>body { font-family: sans-serif; font-size: 11pt; padding-right: 20px; }" +
+        return String.format("%s\n\t\t<style>body { font-family: sans-serif; font-size: 11pt; } " +
+                "code { margin-right: 1em; }" +
                 " .red { color: indianred; } </style>", input);
     }
 }

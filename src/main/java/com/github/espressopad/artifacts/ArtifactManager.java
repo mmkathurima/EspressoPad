@@ -1,6 +1,7 @@
 package com.github.espressopad.artifacts;
 
 import com.github.espressopad.EspressoPadController;
+import com.github.espressopad.EspressoPadMain;
 import com.github.espressopad.editor.TextEditorAutoComplete;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
@@ -66,6 +67,8 @@ public class ArtifactManager extends Application {
                 new Alert(Alert.AlertType.INFORMATION, "Imports added.").showAndWait();
             }
         });
+        EspressoPadMain.setThemeResource(scene);
+
         stage.setScene(scene);
         stage.setTitle("Manage dependencies");
         stage.show();

@@ -38,12 +38,15 @@ public class About extends Application {
         String title = this.stage.getTitle();
         textArea.setWrapText(true);
         textArea.setEditable(false);
+        for (String key : TextEditorConstants.properties)
+            textArea.appendText(String.format("%s - %s\n", key, System.getProperty(key)));
+        textArea.positionCaret(0);
 
         Label productName = new Label(title);
         productName.setFont(Font.font(Font.getDefault().getFamily(), FontWeight.EXTRA_BOLD, 36d));
         productName.setAlignment(Pos.CENTER);
 
-        Label details = new Label(String.format("v0.14\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
+        Label details = new Label(String.format("v0.15\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
                 System.getProperty("java.vm.vendor"), System.getProperty("java.vm.version"),
                 System.getProperty("os.arch"), System.getProperty("java.vm.name")));
         details.setAlignment(Pos.CENTER);
@@ -74,15 +77,15 @@ public class About extends Application {
         vBox.setPadding(new Insets(15d));
         //vBox.setStyle("-fx-padding: 5px 1em;-fx-border-insets: 5px;-fx-background-insets: 5px;");
 
-        stage.setScene(new Scene(vBox));
-        for (String key : TextEditorConstants.properties)
-            textArea.appendText(String.format("%s - %s\n", key, System.getProperty(key)));
-        textArea.positionCaret(0);
+        Scene scene = new Scene(vBox);
+        EspressoPadMain.setThemeResource(scene);
 
+        stage.setScene(scene);
         stage.initModality(Modality.WINDOW_MODAL);
         stage.setResizable(false);
         stage.initOwner(this.stage);
         stage.setTitle(String.format("About %s", title));
         stage.show();
+        closeBtn.requestFocus();
     }
 }

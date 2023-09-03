@@ -30,12 +30,20 @@ public class ConsoleOutputStream extends OutputStream {
 
                 char c = (char) b;
                 switch (c) {
+                    case '\r':
                     case '\n':
                         // Append a <br> element for newline characters
                         element.appendChild(document.createElement("br"));
                         break;
                     case '\t':
                         // Replace tabs with four non-breaking spaces
+                        element.append("&nbsp;".repeat(4));
+                        break;
+                    case '\b':
+                        element.html(element.html().substring(0, element.html().length() - 1));
+                        break;
+                    case '\f':
+                        element.appendChild(document.createElement("br"));
                         element.append("&nbsp;".repeat(4));
                         break;
                     default:

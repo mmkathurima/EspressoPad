@@ -3,7 +3,6 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.Text?>
 <?import javafx.scene.web.WebView?>
 <?import org.kordamp.ikonli.javafx.*?>
 <VBox xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx" fx:id="mainBox"
@@ -96,7 +95,7 @@
                                     <Tooltip text="Match Regex"/>
                                 </tooltip>
                             </ToggleButton>
-                            <Text fx:id="findResults"/>
+                            <Label fx:id="findResults"/>
                             <Region HBox.hgrow="ALWAYS"/>
                             <Button onAction="#toggleFindReplace">
                                 <graphic>
@@ -124,7 +123,7 @@
             </VBox>
             <VBox fx:id="outputPane">
                 <HBox spacing="20">
-                    <Text text="Output"/>
+                    <Label text="Output"/>
                     <Button text="Clear" onAction="#clearOutput">
                         <graphic>
                             <FontIcon iconLiteral="fas-trash-alt" iconSize="12"/>

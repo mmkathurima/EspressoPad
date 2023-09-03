@@ -10,12 +10,14 @@ import com.github.espressopad.io.ConsoleErrorStream;
 import com.github.espressopad.io.ConsoleInputStream;
 import com.github.espressopad.io.ConsoleOutputStream;
 import com.github.espressopad.xml.XmlHandler;
+import com.jthemedetecor.OsThemeDetector;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Worker;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
@@ -30,6 +32,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
 import javafx.stage.Screen;
@@ -46,11 +49,13 @@ import org.fxmisc.richtext.model.TwoDimensional;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.w3c.dom.Element;
 
 import javax.swing.filechooser.FileSystemView;
 import java.awt.Desktop;
 import java.io.*;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -85,7 +90,7 @@ public class EspressoPadController implements Initializable {
     @FXML
     private ToggleButton matchCase;
     @FXML
-    private Text findResults;
+    private Label findResults;
     @FXML
     private ToggleButton matchWord;
     @FXML
@@ -104,11 +109,12 @@ public class EspressoPadController implements Initializable {
     private PrintStream outStream, errStream;
     private ConsoleInputStream in;
     private JShell shell;
-    private File[] shelfChildren;
+    private File[] shelvedFiles;
     private File currentFile = null;
     private int currentSelectionIndex = 0;
     private String html;
     private Document document;
+    private Path homePath;
 
     public WebView getDocumentationView() {
         return this.documentationView;
@@ -126,10 +132,6 @@ public class EspressoPadController implements Initializable {
         return this.tacs;
     }
 
-    private TextEditor getCurrentTextEditor() {
-        return this.editors.get(this.tabPane.getSelectionModel().getSelectedIndex() + 1);
-    }
-
     public JShell getShell() {
         return shell;
     }
@@ -142,20 +144,29 @@ public class EspressoPadController implements Initializable {
         return this.document;
     }
 
+    private TextEditor getCurrentTextEditor() {
+        return this.editors.get(this.tabPane.getSelectionModel().getSelectedIndex() + 1);
+    }
+
+    public Path getHomePath() {
+        return this.homePath;
+    }
+
     @Override
     @FXML
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        this.homePath = new File(URLDecoder.decode(this.getClass().getProtectionDomain().getCodeSource()
+                .getLocation().getPath(), StandardCharsets.UTF_8)).toPath().getParent();
         Tab tab = this.newTabButton(this.tabPane);
         this.splitPane.setDividerPosition(0, .3);
         this.splitPane.setPrefHeight(this.mainBox.getPrefHeight());
         this.tabPane.getTabs().add(tab);
         this.editor = new TextEditor(this.tabPane.getTabs().get(this.tabPane.getTabs().indexOf(tab) - 1));
         this.handler.writeImportXml(List.of("java.util.stream.*", "java.util.*", "java.io.*"));
-        this.tac = new TextEditorAutoComplete(this.editor);
-        this.tac.setController(this);
+        this.tac = new TextEditorAutoComplete(this.editor, this);
         this.tacs.add(this.tac);
         this.editors.add(this.editor);
-        try (InputStream stream = this.getClass().getResourceAsStream("defaultWebview.html")) {
+        try (InputStream stream = this.getClass().getResourceAsStream("default-webview.html")) {
             if (stream != null) {
                 this.html = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
                 this.output.getEngine().loadContent(this.html);
@@ -171,12 +182,15 @@ public class EspressoPadController implements Initializable {
         this.shell = JShell.builder().out(this.outStream).err(this.errStream).in(this.in).build();
 
         this.findReplaceBox.managedProperty().bind(this.findReplaceBox.visibleProperty());
+        this.output.prefHeightProperty().bind(this.outputPane.heightProperty());
 
         if (this.handler.getArtifactFile().exists()) {
             for (String s : this.handler.parseArtifactXml())
                 this.shell.addToClasspath(s);
         }
-        Path dumpFile = Path.of(System.getProperty("user.dir"), "libs", "dump.jar");
+
+        Path dumpFile = this.homePath.resolve("libs").resolve("dump.jar");
+        //System.out.println(dumpFile);
         this.shell.addToClasspath(dumpFile.toString());
 
         this.treeView.addEventHandler(KeyEvent.KEY_RELEASED, event -> openFileFromTreeView());
@@ -193,17 +207,17 @@ public class EspressoPadController implements Initializable {
         this.setupContextMenu();
 
         try {
-            File shelf = Path.of(System.getProperty("user.dir"), "shelf").toFile();
-            this.shelfChildren = shelf.listFiles();
-            if (shelf.exists() && this.shelfChildren != null && this.shelfChildren.length > 0) {
-                for (int i = 0; i < this.shelfChildren.length; i++) {
-                    File shelfFile = this.shelfChildren[i];
+            File shelf = this.homePath.resolve("shelf").toFile();
+            this.shelvedFiles = shelf.listFiles();
+            if (shelf.exists() && this.shelvedFiles != null && this.shelvedFiles.length > 0) {
+                for (int i = 0; i < this.shelvedFiles.length; i++) {
+                    File shelfFile = this.shelvedFiles[i];
                     tab = new Tab(String.format("*Shelved %d", i + 1));
                     this.tabPane.getTabs().add(this.tabPane.getTabs().size() - 1, tab);
                     TextEditor textEditor = new TextEditor(tab);
                     textEditor.getCodeArea().replaceText(Files.readString(shelfFile.toPath()));
-                    TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor, shelfFile.getName());
-                    autoComplete.setController(this);
+                    TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor, shelfFile.getName(),
+                            this);
                     this.tacs.add(autoComplete);
                     this.editors.add(textEditor);
                     this.setTabEvents(textEditor, autoComplete);
@@ -212,6 +226,30 @@ public class EspressoPadController implements Initializable {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        for (WebView webView : new WebView[]{this.output, this.documentationView}) {
+            WebEngine engine = webView.getEngine();
+            engine.getLoadWorker().stateProperty().addListener(new ChangeListener<>() {
+                @Override
+                public void changed(ObservableValue<? extends Worker.State> obs, Worker.State oldState,
+                                    Worker.State newState) {
+                    if (newState == Worker.State.SUCCEEDED) {
+                        if (OsThemeDetector.isSupported() && OsThemeDetector.getDetector().isDark()) {
+                            org.w3c.dom.Document doc = engine.getDocument();
+                            Element styleNode = doc.createElement("style");
+                            org.w3c.dom.Text styleContent = doc.createTextNode(
+                                    "body { background-color: #373e43; color: white; }" +
+                                            "summary { background-color: #202020 !important; }" +
+                                            "a { color: lightskyblue; } a:active, a:visited { color: mediumorchid; }" +
+                                            ".err { color: #D76A66 !important;}");
+                            styleNode.appendChild(styleContent);
+                            doc.getDocumentElement().getElementsByTagName("head").item(0).appendChild(styleNode);
+                        }
+                    }
+                }
+            });
+        }
+        this.documentationView.getEngine().loadContent("<div/>");
     }
 
     private static String getFileExtension(String fileName) {
@@ -239,7 +277,7 @@ public class EspressoPadController implements Initializable {
         }
     }
 
-    public void stop() throws IOException {
+    void stop() throws IOException {
         this.in.close();
         this.out.close();
         this.err.close();
@@ -248,7 +286,7 @@ public class EspressoPadController implements Initializable {
         this.shell.close();
     }
 
-    public void setupStageListeners(Stage stage) {
+    void setupStageListeners(Stage stage) {
         Rectangle2D screenBounds = Screen.getPrimary().getBounds();
         stage.focusedProperty().addListener(new ChangeListener<Boolean>() {
             @Override
@@ -274,8 +312,6 @@ public class EspressoPadController implements Initializable {
                 splitPane.setPrefHeight(newValue.doubleValue());
                 outputPane.setMaxHeight(.5 * newValue.doubleValue());
                 outputPane.setMinHeight(.2 * newValue.doubleValue());
-                output.setMaxHeight(outputPane.getMaxHeight());
-                output.setPrefHeight(.3 * screenBounds.getHeight());
             }
         });
         stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
@@ -287,23 +323,9 @@ public class EspressoPadController implements Initializable {
                 }
             }
         });
-        stage.setOnShown(new EventHandler<WindowEvent>() {
-            @Override
-            public void handle(WindowEvent event) {
-                PauseTransition transition = new PauseTransition(Duration.seconds(.5));
-                transition.setOnFinished(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent event) {
-                        getCurrentTextEditor().getCodeArea().requestFocus();
-                    }
-                });
-                transition.play();
-            }
-        });
 
         this.splitPane.setPrefHeight(stage.getHeight());
         this.tabParent.setPrefHeight(.75 * screenBounds.getHeight());
-        this.output.setPrefHeight(.3 * screenBounds.getHeight());
         for (TextEditor textEditor : this.editors)
             textEditor.getCodeArea().setPrefHeight(.9 * this.tabParent.getPrefHeight());
     }
@@ -341,13 +363,22 @@ public class EspressoPadController implements Initializable {
                     // Adding new tab before the "button" tab
                     tabPane.getTabs().add(tabPane.getTabs().size() - 1, tab);
                     TextEditor textEditor = new TextEditor(tab);
-                    TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor, currentFile);
-                    autoComplete.setController(EspressoPadController.this);
+                    TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor, currentFile,
+                            EspressoPadController.this);
                     tacs.add(autoComplete);
                     editors.add(textEditor);
                     // Selecting the tab before the button, which is the newly created one
                     tabPane.getSelectionModel().select(tabPane.getTabs().size() - 2);
                     setTabEvents(textEditor, autoComplete);
+
+                    PauseTransition transition = new PauseTransition(Duration.seconds(.1));
+                    transition.setOnFinished(new EventHandler<ActionEvent>() {
+                        @Override
+                        public void handle(ActionEvent event) {
+                            getCurrentTextEditor().getCodeArea().requestFocus();
+                        }
+                    });
+                    transition.play();
                 }
             }
         });
@@ -480,8 +511,9 @@ public class EspressoPadController implements Initializable {
                             if (file.renameTo(path.toFile())) {
                                 refreshFileTree();
                                 getCurrentTextEditor().getTab().setText(String.valueOf(path.getFileName()));
-                            } else new Alert(Alert.AlertType.ERROR, String.format("Renaming '%s' failed.", fileName))
-                                    .showAndWait();
+                            } else
+                                new Alert(Alert.AlertType.ERROR, String.format("Renaming '%s' failed.", fileName))
+                                        .showAndWait();
                         }
                     });
                 }
@@ -604,11 +636,13 @@ public class EspressoPadController implements Initializable {
             this.currentFile = null;
     }
 
-    public void createNewFile(ActionEvent event) {
+    @FXML
+    private void createNewFile(ActionEvent event) {
         this.tabPane.getSelectionModel().select(this.tabPane.getTabs().size() - 1);
     }
 
-    public void openFile(ActionEvent event) throws IOException {
+    @FXML
+    private void openFile(ActionEvent event) throws IOException {
         File file = this.setupFileChooser(this.validateDefaultDirectory())
                 .showOpenDialog(this.mainBox.getScene().getWindow());
         this.openFile(file);
@@ -628,7 +662,8 @@ public class EspressoPadController implements Initializable {
         }
     }
 
-    public void closeFile(ActionEvent event) {
+    @FXML
+    private void closeFile(ActionEvent event) {
         Tab currentTab = this.tabPane.getSelectionModel().getSelectedItem();
         Event.fireEvent(currentTab, new Event(currentTab, currentTab, Tab.TAB_CLOSE_REQUEST_EVENT));
         Event.fireEvent(currentTab, new Event(currentTab, currentTab, Tab.CLOSED_EVENT));
@@ -647,7 +682,8 @@ public class EspressoPadController implements Initializable {
         }
     }
 
-    public void saveFile(ActionEvent event) throws IOException {
+    @FXML
+    private void saveFile(ActionEvent event) throws IOException {
         TextEditor textEditor = this.getCurrentTextEditor();
         if (this.savedOpenFiles.containsKey(textEditor)) {
             Files.writeString(this.savedOpenFiles.get(textEditor).toPath(), textEditor.getCodeArea().getText());
@@ -655,52 +691,65 @@ public class EspressoPadController implements Initializable {
         } else this.saveFileAs(null);
     }
 
-    public void saveFileAs(ActionEvent event) throws IOException {
+    @FXML
+    private void saveFileAs(ActionEvent event) throws IOException {
         File file = this.setupFileChooser(this.validateDefaultDirectory())
                 .showSaveDialog(this.mainBox.getScene().getWindow());
         if (file != null) {
             Files.writeString(file.toPath(), this.getCurrentTextEditor().getCodeArea().getText());
             this.tabPane.getSelectionModel().getSelectedItem().setText(file.getName());
             this.savedOpenFiles.put(this.getCurrentTextEditor(), file);
-            if (this.shelfChildren != null && this.shelfChildren.length > 0) {
-                for (File x : this.shelfChildren) {
-                    if (compareFilesByLine(x.toPath(), file.toPath()) && x.delete())
-                        break;
+            File shelf = this.homePath.resolve("shelf").toFile();
+            if (shelf.exists()) {
+                this.shelvedFiles = shelf.listFiles();
+                if (this.shelvedFiles != null && this.shelvedFiles.length > 0) {
+                    for (File f : this.shelvedFiles) {
+                        if (compareFilesByLine(f.toPath(), file.toPath()) && f.delete())
+                            break;
+                    }
                 }
+                this.refreshFileTree();
             }
-            this.refreshFileTree();
         }
     }
 
-    public void exit(ActionEvent event) {
+    @FXML
+    private void exit(ActionEvent event) {
         Platform.exit();
     }
 
-    public void undo(ActionEvent event) {
+    @FXML
+    private void undo(ActionEvent event) {
         this.getCurrentTextEditor().getCodeArea().undo();
     }
 
-    public void redo(ActionEvent event) {
+    @FXML
+    private void redo(ActionEvent event) {
         this.getCurrentTextEditor().getCodeArea().redo();
     }
 
-    public void cut(ActionEvent event) {
+    @FXML
+    private void cut(ActionEvent event) {
         this.getCurrentTextEditor().getCodeArea().cut();
     }
 
-    public void copy(ActionEvent event) {
+    @FXML
+    private void copy(ActionEvent event) {
         this.getCurrentTextEditor().getCodeArea().copy();
     }
 
-    public void paste(ActionEvent event) {
+    @FXML
+    private void paste(ActionEvent event) {
         this.getCurrentTextEditor().getCodeArea().paste();
     }
 
-    public void selectAllText(ActionEvent event) {
+    @FXML
+    private void selectAllText(ActionEvent event) {
         this.getCurrentTextEditor().getCodeArea().selectAll();
     }
 
-    public void goToLine(ActionEvent event) {
+    @FXML
+    private void goToLine(ActionEvent event) {
         CodeArea codeArea = this.getCurrentTextEditor().getCodeArea();
         TwoDimensional.Position caretPos = codeArea.offsetToPosition(codeArea.getCaretPosition(),
                 TwoDimensional.Bias.Forward);
@@ -728,7 +777,8 @@ public class EspressoPadController implements Initializable {
         });
     }
 
-    public void duplicateLine(ActionEvent event) {
+    @FXML
+    private void duplicateLine(ActionEvent event) {
         TwoDimensional.Position caretPos = this.getCurrentTextEditor().getCodeArea()
                 .offsetToPosition(this.getCurrentTextEditor().getCodeArea().getCaretPosition(),
                         TwoDimensional.Bias.Forward);
@@ -738,7 +788,8 @@ public class EspressoPadController implements Initializable {
                 String.format("\n%s", currentLine));
     }
 
-    public void reformat(ActionEvent event) {
+    @FXML
+    private void reformat(ActionEvent event) {
         ASFormatter formatter = new ASFormatter();
         formatter.setSourceStyle(SourceMode.JAVA);
         formatter.setFormattingStyle(EnumFormatStyle.JAVA);
@@ -758,11 +809,13 @@ public class EspressoPadController implements Initializable {
         }
     }
 
-    public void runCode(ActionEvent event) {
+    @FXML
+    private void runCode(ActionEvent event) {
         this.runCode();
     }
 
-    public void manageArtifacts(ActionEvent event) {
+    @FXML
+    private void manageArtifacts(ActionEvent event) {
         Platform.runLater(new Runnable() {
             @Override
             public void run() {
@@ -775,7 +828,8 @@ public class EspressoPadController implements Initializable {
         });
     }
 
-    public void showAbout(ActionEvent event) {
+    @FXML
+    private void showAbout(ActionEvent event) {
         Platform.runLater(new Runnable() {
             @Override
             public void run() {
@@ -784,7 +838,8 @@ public class EspressoPadController implements Initializable {
         });
     }
 
-    public void toggleFindReplace(ActionEvent event) {
+    @FXML
+    private void toggleFindReplace(ActionEvent event) {
         this.findReplaceBox.setVisible(!this.findReplaceBox.isVisible());
         this.toggleFindReplaceMenuItem.setSelected(this.findReplaceBox.isVisible());
         if (this.findReplaceBox.isVisible())

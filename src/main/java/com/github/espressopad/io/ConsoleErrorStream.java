@@ -20,12 +20,20 @@ public class ConsoleErrorStream extends ConsoleOutputStream {
 
                 char c = (char) b;
                 switch (c) {
+                    case '\r':
                     case '\n':
                         // Append a <br> element for newline characters
                         element.appendChild(document.createElement("br"));
                         break;
                     case '\t':
                         // Replace tabs with four non-breaking spaces
+                        element.append("&nbsp;".repeat(4));
+                        break;
+                    case '\b':
+                        element.select("span.err:last-child").remove();
+                        break;
+                    case '\f':
+                        element.appendChild(document.createElement("br"));
                         element.append("&nbsp;".repeat(4));
                         break;
                     default:

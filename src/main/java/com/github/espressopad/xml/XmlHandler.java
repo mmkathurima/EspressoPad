@@ -17,13 +17,16 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 public class XmlHandler {
-    private final File importsFile = Path.of(System.getProperty("user.dir"), "imports.xml").toFile();
-    private final File artifactFile = Path.of(System.getProperty("user.dir"), "artifacts.xml").toFile();
+    private final File importsFile = new File(URLDecoder.decode(this.getClass().getProtectionDomain().getCodeSource()
+            .getLocation().getPath(), StandardCharsets.UTF_8)).toPath().getParent().resolve("imports.xml").toFile();
+    private final File artifactFile = new File(URLDecoder.decode(this.getClass().getProtectionDomain().getCodeSource()
+            .getLocation().getPath(), StandardCharsets.UTF_8)).toPath().getParent().resolve("artifacts.xml").toFile();
 
     public File getImportsFile() {
         return importsFile;
@@ -33,7 +36,7 @@ public class XmlHandler {
         return artifactFile;
     }
 
-    public Document initDocument(File file) throws ParserConfigurationException, SAXException, IOException {
+    private Document initDocument(File file) throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
         builderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
 
@@ -54,7 +57,7 @@ public class XmlHandler {
         return filteredImports;
     }
 
-    public void saveXmlChanges(File file, Document document) throws TransformerException {
+    private void saveXmlChanges(File file, Document document) throws TransformerException {
         Transformer transformer = TransformerFactory.newInstance().newTransformer();
         DOMSource domSource = new DOMSource(document);
         StreamResult sr = new StreamResult(file);

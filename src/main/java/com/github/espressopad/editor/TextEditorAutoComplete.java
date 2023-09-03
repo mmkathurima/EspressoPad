@@ -37,35 +37,28 @@ public class TextEditorAutoComplete {
     private List<String> keyphrases;
     private TwoDimensional.Position caretPos;
     private List<SnippetEvent> snippetEvents;
-    private EspressoPadController controller;
+    private final EspressoPadController controller;
     private String shelvedFileName = null;
     private File savedFile = null;
 
-    public TextEditorAutoComplete(TextEditor textEditor) {
+    public TextEditorAutoComplete(TextEditor textEditor, EspressoPadController controller) {
         this.textEditor = textEditor;
+        this.controller = controller;
         this.initAutoCompleteEvents();
     }
 
-    public TextEditorAutoComplete(TextEditor textEditor, String shelvedFileName) {
-        this(textEditor);
+    public TextEditorAutoComplete(TextEditor textEditor, String shelvedFileName, EspressoPadController controller) {
+        this(textEditor, controller);
         this.shelvedFileName = shelvedFileName;
     }
 
-    public TextEditorAutoComplete(TextEditor textEditor, File savedFile) {
-        this(textEditor);
+    public TextEditorAutoComplete(TextEditor textEditor, File savedFile, EspressoPadController controller) {
+        this(textEditor, controller);
         this.savedFile = savedFile;
     }
 
     public JShell getShell() {
         return this.textEditor.shell;
-    }
-
-    public EspressoPadController getController() {
-        return this.controller;
-    }
-
-    public void setController(EspressoPadController controller) {
-        this.controller = controller;
     }
 
     public Popup getAutoCompletePopup() {
@@ -137,7 +130,7 @@ public class TextEditorAutoComplete {
                     .documentation(this.currentLine, this.currentLine.length(), true);
 
             if (!docs.isEmpty())
-                this.getController().getDocumentationView().getEngine().loadContent(docs.stream()
+                this.controller.getDocumentationView().getEngine().loadContent(docs.stream()
                         .map(doc -> String.format("<div><code>%s</code><br><br>%s<hr/></div>", doc.signature(),
                                 HtmlHandler.convertJavaDoc(doc.javadoc())))
                         .collect(Collectors.joining()));
@@ -181,14 +174,14 @@ public class TextEditorAutoComplete {
                 caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
                         TwoDimensional.Bias.Forward);
                 currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
-                Path shelfDir = Path.of(System.getProperty("user.dir"), "shelf");
+                Path shelfDir = controller.getHomePath().resolve("shelf");
 
                 if (!Objects.equals(newValue, oldValue))
                     textEditor.getTab().setText(String.format("*%s", textEditor.getTab().getText()
                             .replaceFirst("^\\*", "")));
 
                 try {
-                    if (!getController().getSavedOpenFiles().containsKey(textEditor) && shelvedFileName == null
+                    if (!controller.getSavedOpenFiles().containsKey(textEditor) && shelvedFileName == null
                             && savedFile == null) {
                         if (!shelfDir.toFile().exists())
                             Files.createDirectory(shelfDir);
@@ -290,6 +283,14 @@ public class TextEditorAutoComplete {
             public void handle(MouseEvent event) {
                 if (autoCompletePopup != null && autoCompletePopup.isShowing())
                     autoCompletePopup.hide();
+                if (event.getTarget() instanceof Text) {
+                    try {
+                        int line = Integer.parseInt(((Text) event.getTarget()).getText()) - 1;
+                        textEditor.getCodeArea().selectRange(line, 0, line,
+                                textEditor.getCodeArea().getParagraph(line).getText().length());
+                    } catch (NumberFormatException e) {
+                    }
+                }
             }
         });
         this.textEditor.getCodeArea().addEventHandler(MouseEvent.MOUSE_RELEASED, new EventHandler<MouseEvent>() {
@@ -307,7 +308,7 @@ public class TextEditorAutoComplete {
             for (String s : handler.parseArtifactXml())
                 shell.addToClasspath(s);
         }
-        Path dumpFile = Path.of(System.getProperty("user.dir"), "libs", "dump.jar");
+        Path dumpFile = controller.getHomePath().resolve("libs").resolve("dump.jar");
         shell.addToClasspath(dumpFile.toString());
         if (handler.getImportsFile().exists())
             shell.eval(handler.parseImportXml()

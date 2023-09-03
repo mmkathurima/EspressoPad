@@ -99,7 +99,8 @@ public class ArtifactManagerController implements Initializable {
             this.importView.getItems().addAll(this.handler.parseImportXml());
     }
 
-    public void pickJar(ActionEvent event) {
+    @FXML
+    private void pickJar(ActionEvent event) {
         FileChooser chooser = new FileChooser();
         chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JAR Files", "*.jar"));
         File file = chooser.showOpenDialog(this.jarFinder.getScene().getWindow());
@@ -109,7 +110,8 @@ public class ArtifactManagerController implements Initializable {
         } else this.loadArtifacts.setDisable(true);
     }
 
-    public void resolveDependencies(ActionEvent event) {
+    @FXML
+    private void resolveDependencies(ActionEvent event) {
         Artifact artifact = this.resolver.artifactFor(this.dependencyQuery.getText());
         ResolvedArtifact resolvedArtifact = this.resolver.resolveArtifact(artifact);
         if (resolvedArtifact != null) {
@@ -131,13 +133,15 @@ public class ArtifactManagerController implements Initializable {
         }
     }
 
-    public void removeArtifact(ActionEvent event) {
+    @FXML
+    private void removeArtifact(ActionEvent event) {
         String selected = this.artifactView.getSelectionModel().getSelectedItem();
         if (selected != null && !selected.isBlank())
             this.artifactView.getItems().remove(selected);
     }
 
-    public void addImport(ActionEvent event) {
+    @FXML
+    private void addImport(ActionEvent event) {
         String importStmtText = this.importStmt.getText();
         if (!importStmtText.isBlank() && !this.importView.getItems().contains(importStmtText)) {
             this.importView.getItems().add(importStmtText);
@@ -146,7 +150,8 @@ public class ArtifactManagerController implements Initializable {
         }
     }
 
-    public void removeImport(ActionEvent event) {
+    @FXML
+    private void removeImport(ActionEvent event) {
         String selected = this.importView.getSelectionModel().getSelectedItem();
         if (selected != null && !selected.isBlank())
             this.importView.getItems().remove(selected);
