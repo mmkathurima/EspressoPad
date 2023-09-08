@@ -92,7 +92,7 @@
                             </ToggleButton>
                             <ToggleButton fx:id="matchRegex" text=".*">
                                 <tooltip>
-                                    <Tooltip text="Match Regex"/>
+                                    <Tooltip text="Match regex"/>
                                 </tooltip>
                             </ToggleButton>
                             <Label fx:id="findResults"/>
@@ -102,7 +102,7 @@
                                     <FontIcon iconLiteral="fas-times"/>
                                 </graphic>
                                 <tooltip>
-                                    <Tooltip text="Close find/replace"/>
+                                    <Tooltip text="Close Find/Replace"/>
                                 </tooltip>
                             </Button>
                             <padding>
@@ -124,13 +124,14 @@
             <VBox fx:id="outputPane">
                 <HBox spacing="20">
                     <Label text="Output"/>
+                    <Region HBox.hgrow="ALWAYS"/>
                     <Button text="Clear" onAction="#clearOutput">
                         <graphic>
                             <FontIcon iconLiteral="fas-trash-alt" iconSize="12"/>
                         </graphic>
                     </Button>
                     <padding>
-                        <Insets bottom="5.0" left="10.0" top="5.0"/>
+                        <Insets bottom="5.0" left="10.0" top="5.0" right="10.0"/>
                     </padding>
                 </HBox>
                 <WebView fx:id="output"/>

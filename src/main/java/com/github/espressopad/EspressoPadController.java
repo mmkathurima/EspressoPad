@@ -102,8 +102,6 @@ public class EspressoPadController implements Initializable {
     private final List<TextEditor> editors = new ArrayList<>();
     private final List<TextEditorAutoComplete> tacs = new ArrayList<>();
     private final Map<TextEditor, File> savedOpenFiles = new LinkedHashMap<>();
-    private TextEditor editor;
-    private TextEditorAutoComplete tac;
     private ConsoleOutputStream out;
     private ConsoleErrorStream err;
     private PrintStream outStream, errStream;
@@ -115,6 +113,7 @@ public class EspressoPadController implements Initializable {
     private String html;
     private Document document;
     private Path homePath;
+    private Stage stage;
 
     public WebView getDocumentationView() {
         return this.documentationView;
@@ -161,11 +160,11 @@ public class EspressoPadController implements Initializable {
         this.splitPane.setDividerPosition(0, .3);
         this.splitPane.setPrefHeight(this.mainBox.getPrefHeight());
         this.tabPane.getTabs().add(tab);
-        this.editor = new TextEditor(this.tabPane.getTabs().get(this.tabPane.getTabs().indexOf(tab) - 1));
+        TextEditor editor = new TextEditor(this.tabPane.getTabs().get(this.tabPane.getTabs().indexOf(tab) - 1));
         this.handler.writeImportXml(List.of("java.util.stream.*", "java.util.*", "java.io.*"));
-        this.tac = new TextEditorAutoComplete(this.editor, this);
-        this.tacs.add(this.tac);
-        this.editors.add(this.editor);
+        TextEditorAutoComplete tac = new TextEditorAutoComplete(editor, this);
+        this.tacs.add(tac);
+        this.editors.add(editor);
         try (InputStream stream = this.getClass().getResourceAsStream("default-webview.html")) {
             if (stream != null) {
                 this.html = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
@@ -287,6 +286,7 @@ public class EspressoPadController implements Initializable {
     }
 
     void setupStageListeners(Stage stage) {
+        this.stage = stage;
         Rectangle2D screenBounds = Screen.getPrimary().getBounds();
         stage.focusedProperty().addListener(new ChangeListener<Boolean>() {
             @Override
@@ -385,7 +385,7 @@ public class EspressoPadController implements Initializable {
         return addTab;
     }
 
-    private ObservableList<String> getMonospaceFonts() {
+    private List<String> getMonospaceFonts() {
         final Text th = new Text("1 l");
         final Text tk = new Text("MWX");
 
@@ -399,7 +399,7 @@ public class EspressoPadController implements Initializable {
             if (th.getLayoutBounds().getWidth() == tk.getLayoutBounds().getWidth())
                 mFamilyList.add(fontFamilyName);
         }
-        return FXCollections.observableArrayList(mFamilyList);
+        return mFamilyList;
     }
 
     private void runCode() {
@@ -502,7 +502,7 @@ public class EspressoPadController implements Initializable {
                     String fileNameWOExt = fileName.replaceFirst("[.][^.]+$", "");
 
                     TextInputDialog dialog = new TextInputDialog(fileNameWOExt);
-                    dialog.setTitle(((Stage) tabPane.getScene().getWindow()).getTitle());
+                    dialog.setTitle(stage.getTitle());
                     dialog.setHeaderText(String.format("Rename %s to:", fileName));
                     dialog.setContentText("New file name:");
                     dialog.showAndWait().ifPresent(x -> {
@@ -613,6 +613,9 @@ public class EspressoPadController implements Initializable {
                     editors.remove(textEditor);
                     tacs.remove(autoComplete);
                     savedOpenFiles.remove(textEditor);
+
+                    for (var editor : editors)
+                        editor.getCodeArea().setPrefHeight(stage.getHeight());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -644,7 +647,7 @@ public class EspressoPadController implements Initializable {
     @FXML
     private void openFile(ActionEvent event) throws IOException {
         File file = this.setupFileChooser(this.validateDefaultDirectory())
-                .showOpenDialog(this.mainBox.getScene().getWindow());
+                .showOpenDialog(this.stage);
         this.openFile(file);
     }
 
@@ -658,7 +661,7 @@ public class EspressoPadController implements Initializable {
                 this.savedOpenFiles.put(textEditor, file);
             } else
                 this.tabPane.getSelectionModel()
-                        .select(new ArrayList<>(this.savedOpenFiles.values()).indexOf(file) + 1);
+                        .select(new ArrayList<>(this.savedOpenFiles.values()).indexOf(file));
         }
     }
 
@@ -694,7 +697,7 @@ public class EspressoPadController implements Initializable {
     @FXML
     private void saveFileAs(ActionEvent event) throws IOException {
         File file = this.setupFileChooser(this.validateDefaultDirectory())
-                .showSaveDialog(this.mainBox.getScene().getWindow());
+                .showSaveDialog(this.stage);
         if (file != null) {
             Files.writeString(file.toPath(), this.getCurrentTextEditor().getCodeArea().getText());
             this.tabPane.getSelectionModel().getSelectedItem().setText(file.getName());
@@ -755,7 +758,7 @@ public class EspressoPadController implements Initializable {
                 TwoDimensional.Bias.Forward);
         TextInputDialog dialog = new TextInputDialog(String.format("%d:%d", caretPos.getMajor() + 1,
                 caretPos.getMinor()));
-        dialog.setTitle(((Stage) tabPane.getScene().getWindow()).getTitle());
+        dialog.setTitle(this.stage.getTitle());
         dialog.setHeaderText("Go to line:");
         dialog.setContentText("[Line] [:column]:");
         dialog.showAndWait().ifPresent(x -> {
@@ -833,7 +836,7 @@ public class EspressoPadController implements Initializable {
         Platform.runLater(new Runnable() {
             @Override
             public void run() {
-                new About(tabPane.getScene().getWindow()).start(new Stage());
+                new About(stage).start(new Stage());
             }
         });
     }
