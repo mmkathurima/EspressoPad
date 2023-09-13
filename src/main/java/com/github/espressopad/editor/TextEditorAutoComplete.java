@@ -6,12 +6,14 @@ import com.github.espressopad.xml.XmlHandler;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.control.ListView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
 import javafx.stage.Popup;
+import javafx.stage.Screen;
 import jdk.jshell.JShell;
 import jdk.jshell.Snippet;
 import jdk.jshell.SnippetEvent;
@@ -26,6 +28,9 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -66,39 +71,37 @@ public class TextEditorAutoComplete {
     }
 
 
-    private String findCommonPrefix(String s1, String s2) {
-        int minLength = Math.min(s1.length(), s2.length());
-        int index = 0;
-
-        while (index < minLength && s1.charAt(index) == s2.charAt(index))
-            index++;
-
-        return s1.substring(0, index);
-    }
-
     private void tabAutoCompletion(String currentText) {
         if (currentText == null || this.keyphrases == null) return;
-        if (currentText.contains("."))
-            currentText = currentText.substring(currentText.lastIndexOf(".") + 1);
-        else if (currentText.contains(" "))
-            currentText = currentLine.substring(currentText.lastIndexOf(" ") + 1);
 
-        String finalCurrentText = currentText;
-        List<String> suggestions = this.keyphrases.stream().filter(x -> x.startsWith(finalCurrentText))
+        final AtomicReference<String> finalCurrentText = new AtomicReference<>(currentText);
+        Pattern pattern = Pattern.compile("\\b(\\w+)$");
+        Matcher matcher = pattern.matcher(currentText);
+        if (matcher.find())
+            finalCurrentText.set(matcher.group(0));
+
+        List<String> suggestions = this.keyphrases.stream()
+                .filter(x -> x.startsWith(finalCurrentText.get()) &&
+                        x.equals(this.autocomplete.getSelectionModel().getSelectedItem()))
                 .collect(Collectors.toList());
 
         if (!suggestions.isEmpty()) {
-            String suggestion = suggestions.stream()
-                    .filter(x -> x.equals(this.autocomplete.getSelectionModel().getSelectedItem()))
-                    .findFirst().orElse(suggestions.get(0));
-            String prefix = this.findCommonPrefix(currentText, suggestion);
-            this.textEditor.getCodeArea().insertText(this.textEditor.getCodeArea().getCaretPosition(),
-                    suggestion.substring(prefix.length()));
+            String txt = finalCurrentText.get();
+            String suggestion = suggestions.get(0);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < suggestion.length(); i++) {
+                if (i >= txt.length() || txt.charAt(i) != suggestion.charAt(i))
+                    sb.append(suggestion.charAt(i));
+            }
+            this.textEditor.getCodeArea().insertText(this.textEditor.getCodeArea().getCaretPosition(), sb.toString());
         }
         //this.codeArea.appendText(currentText);
     }
 
     private void showAutoCompletePopup() {
+        Rectangle2D rect = Screen.getPrimary().getBounds();
+        AtomicReference<Double> maxX = new AtomicReference<>(rect.getWidth() / 2),
+                maxY = new AtomicReference<>(rect.getHeight() / 2);
         this.keyphrases = this.textEditor.shell.sourceCodeAnalysis()
                 .completionSuggestions(currentLine, currentLine.length(), new int[1])
                 .stream().map(SourceCodeAnalysis.Suggestion::continuation)
@@ -110,10 +113,16 @@ public class TextEditorAutoComplete {
             this.autoCompletePopup = new Popup();
             this.autocomplete.setMaxHeight(80);
             this.autoCompletePopup.getContent().add(this.autocomplete);
-            this.autoCompletePopup.show(
-                    this.textEditor.getCodeArea(),
-                    this.textEditor.getCodeArea().getCaretBounds().get().getMaxX(),
-                    this.textEditor.getCodeArea().getCaretBounds().get().getMaxY());
+            this.textEditor.getCodeArea()
+                    .getCaretBounds()
+                    .ifPresent(x -> {
+                        maxX.set(x.getMaxX());
+                        maxY.set(x.getMaxY());
+                    });
+
+            this.autoCompletePopup.show(this.textEditor.getCodeArea(), maxX.get(), maxY.get());
+            if (!this.autocomplete.getItems().isEmpty())
+                this.autocomplete.getSelectionModel().select(0);
         }
         this.textEditor.getCodeArea().requestFocus();
     }
@@ -176,7 +185,7 @@ public class TextEditorAutoComplete {
                 currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
                 Path shelfDir = controller.getHomePath().resolve("shelf");
 
-                if (!Objects.equals(newValue, oldValue))
+                if (!Objects.equals(newValue, oldValue) && !controller.getSavedOpenFiles().containsKey(textEditor))
                     textEditor.getTab().setText(String.format("*%s", textEditor.getTab().getText()
                             .replaceFirst("^\\*", "")));
 
@@ -190,6 +199,10 @@ public class TextEditorAutoComplete {
                                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                     } else if (shelvedFileName != null && !shelvedFileName.isBlank())
                         Files.writeString(shelfDir.resolve(shelvedFileName), textEditor.getCodeArea().getText(),
+                                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                    else if (controller.getSavedOpenFiles().containsKey(textEditor))
+                        Files.writeString(controller.getSavedOpenFiles().get(textEditor).toPath(),
+                                textEditor.getCodeArea().getText(),
                                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                     savedFile = null;
                 } catch (IOException e) {
@@ -285,7 +298,7 @@ public class TextEditorAutoComplete {
                     autoCompletePopup.hide();
                 if (event.getTarget() instanceof Text) {
                     try {
-                        int line = Integer.parseInt(((Text) event.getTarget()).getText()) - 1;
+                        int line = Integer.parseInt(((Text) event.getTarget()).getText().trim()) - 1;
                         textEditor.getCodeArea().selectRange(line, 0, line,
                                 textEditor.getCodeArea().getParagraph(line).getText().length());
                     } catch (NumberFormatException e) {

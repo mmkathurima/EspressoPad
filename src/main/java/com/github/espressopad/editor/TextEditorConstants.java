@@ -3,7 +3,7 @@ package com.github.espressopad.editor;
 import java.util.regex.Pattern;
 
 public class TextEditorConstants {
-    public static final String[] properties = {
+    private static final String[] properties = {
             "java.home", "java.vendor", "java.version", "sun.desktop", "os.name", "os.version",
             "os.arch", "user.name", "user.dir", "user.home", "user.language", "sun.cpu.isalist",
             "sun.arch.data.model", "java.io.tmpdir", "sun.jnu.encoding", "sun.boot.library.path",
@@ -11,7 +11,7 @@ public class TextEditorConstants {
     };
     protected static final String sampleCode = "IntStream stream = IntStream.rangeClosed(0, 10)\n" +
             "stream.forEach(x -> System.out.println(x));";
-    private static final String[] KEYWORDS = new String[]{
+    protected static final String[] KEYWORDS = {
             "abstract", "assert", "boolean", "break", "byte",
             "case", "catch", "char", "class", "const",
             "continue", "default", "do", "double", "else",
