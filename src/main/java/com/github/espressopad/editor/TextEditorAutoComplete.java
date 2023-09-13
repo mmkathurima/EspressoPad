@@ -247,7 +247,7 @@ public class TextEditorAutoComplete {
             public void handle(KeyEvent event) {
                 if (Stream.of(KeyCode.SHIFT, KeyCode.ALT, KeyCode.CONTROL, KeyCode.TAB, KeyCode.CAPS, KeyCode.BACK_SPACE,
                         KeyCode.DELETE, KeyCode.ENTER).noneMatch(x -> event.getCode().equals(x)) &&
-                        !event.getCode().isArrowKey()) {
+                        !event.getCode().isArrowKey() && !event.isControlDown()) {
                     int cursorPosition = textEditor.getCodeArea().getCaretPosition();
                     if (cursorPosition > 0) {
                         char bracket = textEditor.getCodeArea().getText(cursorPosition - 1, cursorPosition).charAt(0);
@@ -308,8 +308,7 @@ public class TextEditorAutoComplete {
             for (String s : handler.parseArtifactXml())
                 shell.addToClasspath(s);
         }
-        Path dumpFile = controller.getHomePath().resolve("libs").resolve("dump.jar");
-        shell.addToClasspath(dumpFile.toString());
+        shell.addToClasspath(controller.getDumpFile().toString());
         if (handler.getImportsFile().exists())
             shell.eval(handler.parseImportXml()
                     .stream()

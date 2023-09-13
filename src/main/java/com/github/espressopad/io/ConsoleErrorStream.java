@@ -21,9 +21,12 @@ public class ConsoleErrorStream extends ConsoleOutputStream {
                 char c = (char) b;
                 switch (c) {
                     case '\r':
-                    case '\n':
                         // Append a <br> element for newline characters
                         element.appendChild(document.createElement("br"));
+                        break;
+                    case '\n':
+                        if (prev != null && prev != '\r')
+                            element.appendChild(document.createElement("br"));
                         break;
                     case '\t':
                         // Replace tabs with four non-breaking spaces
@@ -41,6 +44,7 @@ public class ConsoleErrorStream extends ConsoleOutputStream {
                         element.append(String.format("<span class=\"err\">%c</span>", c));
                         break;
                 }
+                prev = c;
                 engine.loadContent(HtmlEscape.unescapeHtml(document.outerHtml()), "text/html");
             }
         });

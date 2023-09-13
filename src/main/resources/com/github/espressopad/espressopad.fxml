@@ -7,7 +7,7 @@
 <?import org.kordamp.ikonli.javafx.*?>
 <VBox xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx" fx:id="mainBox"
       fx:controller="com.github.espressopad.EspressoPadController" prefWidth="600" prefHeight="500">
-    <MenuBar>
+    <MenuBar fx:id="menuBar">
         <Menu text="File">
             <MenuItem accelerator="Shortcut+N" onAction="#createNewFile" text="New"/>
             <MenuItem accelerator="Shortcut+O" onAction="#openFile" text="Open"/>

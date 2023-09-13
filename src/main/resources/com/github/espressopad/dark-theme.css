@@ -116,3 +116,7 @@
 .string {
     -fx-fill: aquamarine !important;
 }
+
+.comment {
+    -fx-fill: cadetblue !important;
+}

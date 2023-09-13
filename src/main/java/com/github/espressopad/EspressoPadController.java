@@ -15,9 +15,9 @@ import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.concurrent.Worker;
+import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
@@ -27,6 +27,8 @@ import javafx.geometry.Rectangle2D;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
@@ -51,6 +53,8 @@ import org.jsoup.nodes.Document;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.w3c.dom.Element;
 
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.filechooser.FileSystemView;
 import java.awt.Desktop;
 import java.io.*;
@@ -65,6 +69,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class EspressoPadController implements Initializable {
+    @FXML
+    private MenuBar menuBar;
     @FXML
     private VBox mainBox;
     @FXML
@@ -114,6 +120,7 @@ public class EspressoPadController implements Initializable {
     private Document document;
     private Path homePath;
     private Stage stage;
+    private Path dumpFile;
 
     public WebView getDocumentationView() {
         return this.documentationView;
@@ -151,12 +158,18 @@ public class EspressoPadController implements Initializable {
         return this.homePath;
     }
 
+    public Path getDumpFile() {
+        return this.dumpFile;
+    }
+
     @Override
     @FXML
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        Tab tab;
         this.homePath = new File(URLDecoder.decode(this.getClass().getProtectionDomain().getCodeSource()
                 .getLocation().getPath(), StandardCharsets.UTF_8)).toPath().getParent();
-        Tab tab = this.newTabButton(this.tabPane);
+        this.dumpFile = this.homePath.resolve("lib").resolve("dump.jar");
+        tab = this.newTabButton(this.tabPane);
         this.splitPane.setDividerPosition(0, .3);
         this.splitPane.setPrefHeight(this.mainBox.getPrefHeight());
         this.tabPane.getTabs().add(tab);
@@ -188,7 +201,6 @@ public class EspressoPadController implements Initializable {
                 this.shell.addToClasspath(s);
         }
 
-        Path dumpFile = this.homePath.resolve("libs").resolve("dump.jar");
         //System.out.println(dumpFile);
         this.shell.addToClasspath(dumpFile.toString());
 
@@ -249,6 +261,18 @@ public class EspressoPadController implements Initializable {
             });
         }
         this.documentationView.getEngine().loadContent("<div/>");
+
+        try {
+            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                if (info.getName().equals("Nimbus")) {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException |
+                 UnsupportedLookAndFeelException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static String getFileExtension(String fileName) {
@@ -359,7 +383,7 @@ public class EspressoPadController implements Initializable {
             @Override
             public void changed(ObservableValue<? extends Tab> observable, Tab oldTab, Tab newTab) {
                 if (newTab == addTab) {
-                    Tab tab = new Tab(String.format("New Tab %d", tabPane.getTabs().size()));
+                    Tab tab = new Tab("New Tab");
                     // Adding new tab before the "button" tab
                     tabPane.getTabs().add(tabPane.getTabs().size() - 1, tab);
                     TextEditor textEditor = new TextEditor(tab);
@@ -404,61 +428,88 @@ public class EspressoPadController implements Initializable {
 
     private void runCode() {
         this.document = Jsoup.parse((String) this.output.getEngine().executeScript("document.documentElement.outerHTML"));
-        var output = this.document.getElementById("output");
-        if (output != null && !output.html().isBlank())
-            output.html("");
+        Task<Void> runTask = new Task<Void>() {
+            @Override
+            protected Void call() throws Exception {
+                var output = document.getElementById("output");
+                if (output != null && !output.html().isBlank())
+                    output.html("");
 
-        String code = this.getEditors()
-                .get(tabPane.getTabs().indexOf(tabPane.getSelectionModel().getSelectedItem()) + 1)
-                .getCodeArea().getText();
-        SourceCodeAnalysis.CompletionInfo completion = shell.sourceCodeAnalysis().analyzeCompletion(code);
-        List<SnippetEvent> l = this.shell.eval(handler.parseImportXml()
-                .stream()
-                .map(imports -> String.format("import %s;", imports))
-                .collect(Collectors.joining()));
-        System.err.println(l.stream().map(x -> shell.diagnostics(x.snippet()).map(y -> y.getMessage(Locale.ENGLISH))
-                .collect(Collectors.toList())).collect(Collectors.toList()));
-        while (!completion.source().isBlank()) {
-            List<SnippetEvent> snippets = shell.eval(completion.source());
+                String code = getEditors()
+                        .get(tabPane.getTabs().indexOf(tabPane.getSelectionModel().getSelectedItem()) + 1)
+                        .getCodeArea().getText();
+                SourceCodeAnalysis.CompletionInfo completion = shell.sourceCodeAnalysis().analyzeCompletion(code);
+                List<SnippetEvent> l = shell.eval(handler.parseImportXml()
+                        .stream()
+                        .map(imports -> String.format("import %s;", imports))
+                        .collect(Collectors.joining()));
+                System.err.println(l.stream().map(x -> shell.diagnostics(x.snippet()).map(y -> y.getMessage(Locale.ENGLISH))
+                        .collect(Collectors.toList())).collect(Collectors.toList()));
+                while (!completion.source().isBlank()) {
+                    List<SnippetEvent> snippets = shell.eval(completion.source());
 
-            for (var snippet : snippets) {
-                // Check the status of the evaluation
-                String src = snippet.snippet().source().trim();
-                switch (snippet.status()) {
-                    case VALID:
-                        System.out.printf("Code evaluation successful at \"%s\" ", src);
-                        if (snippet.value() != null && !snippet.value().isBlank()) {
-                            System.out.print("and returned a value");
-                            //this.printStream.printf("\"%s\" ==> %s\n", src, snippet.value());
+                    for (var snippet : snippets) {
+                        // Check the status of the evaluation
+                        String src = snippet.snippet().source().trim();
+                        switch (snippet.status()) {
+                            case VALID:
+                                System.out.printf("Code evaluation successful at \"%s\" ", src);
+                                if (snippet.value() != null && !snippet.value().isBlank()) {
+                                    System.out.print("and returned a value");
+                                    //this.printStream.printf("\"%s\" ==> %s\n", src, snippet.value());
+                                }
+                                System.out.println();
+                                break;
+                            case REJECTED: //Compile time errors
+                                List<String> errors = shell.diagnostics(snippet.snippet())
+                                        .map(x -> String.format("\n\"%s\" -> %s\n", src,
+                                                x.getMessage(Locale.ENGLISH)))
+                                        .collect(Collectors.toList());
+                                System.err.printf("Code evaluation failed.\nDiagnostic info:\n%s\n", errors);
+                                errStream.println(errors);
+                                break;
                         }
-                        System.out.println();
-                        break;
-                    case REJECTED: //Compile time errors
-                        List<String> errors = shell.diagnostics(snippet.snippet())
-                                .map(x -> String.format("\n\"%s\" -> %s\n", src,
-                                        x.getMessage(Locale.ENGLISH)))
-                                .collect(Collectors.toList());
-                        System.err.printf("Code evaluation failed.\nDiagnostic info:\n%s\n", errors);
-                        this.errStream.println(errors);
-                        break;
-                }
-                //Runtime errors
-                if (snippet.exception() != null) {
-                    System.err.printf("Code evaluation failed at \"%s\".\n", src);
-                    this.errStream.printf("Code evaluation failed at \"%s\"\nDiagnostic info:\n", src);
-                    snippet.exception().printStackTrace(this.errStream);
-                    snippet.exception().printStackTrace(System.err);
-                    try {
-                        throw snippet.exception();
-                    } catch (JShellException e) {
-                        throw new RuntimeException(e);
+                        //Runtime errors
+                        if (snippet.exception() != null) {
+                            System.err.printf("Code evaluation failed at \"%s\".\n", src);
+                            errStream.printf("Code evaluation failed at \"%s\"\nDiagnostic info:\n", src);
+                            snippet.exception().printStackTrace(errStream);
+                            snippet.exception().printStackTrace(System.err);
+                            try {
+                                throw snippet.exception();
+                            } catch (JShellException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
                     }
+                    if (!completion.remaining().isBlank())
+                        completion = shell.sourceCodeAnalysis().analyzeCompletion(completion.remaining());
+                    else break;
                 }
+                return null;
             }
-            if (!completion.remaining().isBlank())
-                completion = shell.sourceCodeAnalysis().analyzeCompletion(completion.remaining());
-            else break;
-        }
+        };
+        runTask.setOnRunning(new EventHandler<WorkerStateEvent>() {
+            @Override
+            public void handle(WorkerStateEvent event) {
+                StackPane stackPane = new StackPane();
+                stackPane.getChildren().addAll(splitPane, new ProgressIndicator());
+                mainBox.getChildren().setAll(menuBar, stackPane);
+                splitPane.setDisable(true);
+                splitPane.setOpacity(.5);
+            }
+        });
+        EventHandler<WorkerStateEvent> handler = new EventHandler<>() {
+            @Override
+            public void handle(WorkerStateEvent event) {
+                splitPane.setDisable(false);
+                mainBox.getChildren().setAll(menuBar, splitPane);
+                splitPane.setOpacity(1);
+            }
+        };
+        runTask.setOnSucceeded(handler);
+        runTask.setOnFailed(handler);
+        new Thread(runTask).start();
     }
 
     @FXML
@@ -659,9 +710,11 @@ public class EspressoPadController implements Initializable {
                 textEditor.getCodeArea().replaceText(Files.readString(file.toPath()));
                 this.tabPane.getSelectionModel().getSelectedItem().setText(file.getName());
                 this.savedOpenFiles.put(textEditor, file);
-            } else
-                this.tabPane.getSelectionModel()
-                        .select(new ArrayList<>(this.savedOpenFiles.values()).indexOf(file));
+            } else this.savedOpenFiles.entrySet()
+                    .stream()
+                    .filter(x -> x.getValue() == file)
+                    .findFirst()
+                    .ifPresent(x -> tabPane.getSelectionModel().select(editors.indexOf(x.getKey()) - 1));
         }
     }
 

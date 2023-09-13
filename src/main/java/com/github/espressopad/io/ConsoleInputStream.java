@@ -17,11 +17,11 @@ public class ConsoleInputStream extends InputStream {
             JDialog dialog = optionPane.createDialog("Awaiting input");
             dialog.setAlwaysOnTop(true);
             dialog.setVisible(true);
-            dialog.requestFocus();
             dialog.dispose();
             Object val = optionPane.getInputValue();
             if (val == initial)
-                val = "";
+                val = null;
+
             this.buffer.append(val);
             this.buffer.append("\n");
         }

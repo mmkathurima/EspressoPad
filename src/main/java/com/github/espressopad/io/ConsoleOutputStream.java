@@ -14,6 +14,7 @@ public class ConsoleOutputStream extends OutputStream {
     protected Document document;
     protected WebEngine engine;
     protected Element element;
+    protected Character prev = null;
 
     public ConsoleOutputStream(EspressoPadController controller) {
         this.controller = controller;
@@ -31,9 +32,12 @@ public class ConsoleOutputStream extends OutputStream {
                 char c = (char) b;
                 switch (c) {
                     case '\r':
-                    case '\n':
                         // Append a <br> element for newline characters
                         element.appendChild(document.createElement("br"));
+                        break;
+                    case '\n':
+                        if (prev != null && prev != '\r')
+                            element.appendChild(document.createElement("br"));
                         break;
                     case '\t':
                         // Replace tabs with four non-breaking spaces
@@ -51,6 +55,7 @@ public class ConsoleOutputStream extends OutputStream {
                         element.append(String.valueOf(c));
                         break;
                 }
+                prev = c;
                 engine.loadContent(HtmlEscape.unescapeHtml(document.outerHtml()), "text/html");
             }
         });
