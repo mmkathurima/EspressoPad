@@ -24,12 +24,14 @@ module com.github.espressopad {
 
     opens com.github.espressopad;
     exports com.github.espressopad;
-    exports com.github.espressopad.artifacts;
-    opens com.github.espressopad.artifacts;
     exports com.github.espressopad.editor;
     opens com.github.espressopad.editor;
     exports com.github.espressopad.io;
     opens com.github.espressopad.io;
     exports com.github.espressopad.xml;
     opens com.github.espressopad.xml;
+    exports com.github.espressopad.controllers;
+    opens com.github.espressopad.controllers;
+    exports com.github.espressopad.ui;
+    opens com.github.espressopad.ui;
 }

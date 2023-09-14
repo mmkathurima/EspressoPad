@@ -1,4 +1,4 @@
-package com.github.espressopad;
+package com.github.espressopad.ui;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

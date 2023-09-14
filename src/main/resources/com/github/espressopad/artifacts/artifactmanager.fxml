@@ -6,7 +6,7 @@
 <?import javafx.scene.layout.*?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 <TabPane xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/11.0.14-internal"
-         fx:controller="com.github.espressopad.artifacts.ArtifactManagerController" prefHeight="500.0"
+         fx:controller="com.github.espressopad.controllers.ArtifactManagerController" prefHeight="500.0"
          prefWidth="600.0">
     <Tab closable="false" text="Add Dependencies">
         <VBox>

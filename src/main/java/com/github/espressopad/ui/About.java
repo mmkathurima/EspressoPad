@@ -1,4 +1,4 @@
-package com.github.espressopad;
+package com.github.espressopad.ui;
 
 import javafx.application.Application;
 import javafx.event.ActionEvent;

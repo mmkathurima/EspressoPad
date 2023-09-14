@@ -1,7 +1,7 @@
-package com.github.espressopad.artifacts;
+package com.github.espressopad.ui;
 
-import com.github.espressopad.EspressoPadController;
-import com.github.espressopad.EspressoPadMain;
+import com.github.espressopad.controllers.ArtifactManagerController;
+import com.github.espressopad.controllers.EspressoPadController;
 import com.github.espressopad.editor.TextEditorAutoComplete;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
@@ -30,7 +30,7 @@ public class ArtifactManager extends Application {
                 .getResource("artifactmanager.fxml")));
         Scene scene = new Scene(loader.load());
         this.controller = loader.getController();
-        this.controller.loadArtifacts.setOnAction(new EventHandler<ActionEvent>() {
+        this.controller.getLoadArtifacts().setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
                 controller.downloadArtifacts();
@@ -51,7 +51,7 @@ public class ArtifactManager extends Application {
                 }
             }
         });
-        this.controller.saveImports.setOnAction(new EventHandler<ActionEvent>() {
+        this.controller.getSaveImports().setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
                 String importList = controller.getImports()
@@ -63,7 +63,7 @@ public class ArtifactManager extends Application {
                 for (TextEditorAutoComplete x : jController.getAutocompletes())
                     x.getShell().eval(String.format("import %s;", importList));
 
-                controller.getHandler().writeImportXml(controller.importView.getItems());
+                controller.getHandler().writeImportXml(controller.getImportView().getItems());
                 new Alert(Alert.AlertType.INFORMATION, "Imports added.").showAndWait();
             }
         });

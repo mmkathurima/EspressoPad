@@ -1,9 +1,11 @@
-package com.github.espressopad;
+package com.github.espressopad.controllers;
 
 import com.github.abrarsyed.jastyle.ASFormatter;
 import com.github.abrarsyed.jastyle.constants.EnumFormatStyle;
 import com.github.abrarsyed.jastyle.constants.SourceMode;
-import com.github.espressopad.artifacts.ArtifactManager;
+import com.github.espressopad.ui.About;
+import com.github.espressopad.ui.FilePathTreeItem;
+import com.github.espressopad.ui.ArtifactManager;
 import com.github.espressopad.editor.TextEditor;
 import com.github.espressopad.editor.TextEditorAutoComplete;
 import com.github.espressopad.io.ConsoleErrorStream;
@@ -27,7 +29,6 @@ import javafx.geometry.Rectangle2D;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
@@ -300,7 +301,7 @@ public class EspressoPadController implements Initializable {
         }
     }
 
-    void stop() throws IOException {
+    public void stop() throws IOException {
         this.in.close();
         this.out.close();
         this.err.close();
@@ -309,7 +310,7 @@ public class EspressoPadController implements Initializable {
         this.shell.close();
     }
 
-    void setupStageListeners(Stage stage) {
+    public void setupStageListeners(Stage stage) {
         this.stage = stage;
         Rectangle2D screenBounds = Screen.getPrimary().getBounds();
         stage.focusedProperty().addListener(new ChangeListener<Boolean>() {
@@ -430,7 +431,7 @@ public class EspressoPadController implements Initializable {
         this.document = Jsoup.parse((String) this.output.getEngine().executeScript("document.documentElement.outerHTML"));
         Task<Void> runTask = new Task<Void>() {
             @Override
-            protected Void call() throws Exception {
+            protected Void call() {
                 var output = document.getElementById("output");
                 if (output != null && !output.html().isBlank())
                     output.html("");

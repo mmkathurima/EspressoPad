@@ -1,6 +1,6 @@
 package com.github.espressopad.io;
 
-import com.github.espressopad.EspressoPadController;
+import com.github.espressopad.controllers.EspressoPadController;
 import javafx.application.Platform;
 import javafx.scene.web.WebEngine;
 import org.jsoup.nodes.Document;

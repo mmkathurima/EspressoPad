@@ -1,5 +1,6 @@
-package com.github.espressopad;
+package com.github.espressopad.ui;
 
+import com.github.espressopad.controllers.EspressoPadController;
 import com.github.espressopad.editor.TextEditor;
 import com.jthemedetecor.OsThemeDetector;
 import javafx.application.Application;

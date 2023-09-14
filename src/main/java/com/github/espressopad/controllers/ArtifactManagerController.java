@@ -1,4 +1,4 @@
-package com.github.espressopad.artifacts;
+package com.github.espressopad.controllers;
 
 import com.github.espressopad.xml.XmlHandler;
 import com.squareup.tools.maven.resolution.Artifact;
@@ -26,10 +26,13 @@ import java.util.ResourceBundle;
 
 public class ArtifactManagerController implements Initializable {
     @FXML
+    private
     Button loadArtifacts;
     @FXML
+    private
     Button saveImports;
     @FXML
+    private
     ListView<String> importView;
     @FXML
     private Button removeImportBtn;
@@ -51,20 +54,33 @@ public class ArtifactManagerController implements Initializable {
     private Button dependencyResolver;
     @FXML
     private ListView<String> searchResults;
+
     private final XmlHandler handler = new XmlHandler();
     // creates a resolver with repo list defaulting to Maven Central.
     private final ArtifactResolver resolver = new ArtifactResolver();
 
-    XmlHandler getHandler() {
+    public XmlHandler getHandler() {
         return handler;
     }
 
-    List<String> getArtifacts() {
+    public List<String> getArtifacts() {
         return this.artifactView.getItems();
     }
 
-    List<String> getImports() {
+    public List<String> getImports() {
         return this.importView.getItems();
+    }
+
+    public Button getLoadArtifacts() {
+        return this.loadArtifacts;
+    }
+
+    public Button getSaveImports() {
+        return this.saveImports;
+    }
+
+    public ListView<String> getImportView() {
+        return this.importView;
     }
 
     @Override
@@ -124,7 +140,7 @@ public class ArtifactManagerController implements Initializable {
         }
     }
 
-    void downloadArtifacts() {
+    public void downloadArtifacts() {
         try {
             Pair<Path, Path> dependency = this.resolver.download(dependencyQuery.getText());
             this.artifactView.getItems().add(dependency.getSecond().toString());

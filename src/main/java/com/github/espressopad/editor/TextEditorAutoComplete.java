@@ -1,19 +1,18 @@
 package com.github.espressopad.editor;
 
-import com.github.espressopad.EspressoPadController;
+import com.github.espressopad.controllers.EspressoPadController;
 import com.github.espressopad.xml.HtmlHandler;
 import com.github.espressopad.xml.XmlHandler;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
-import javafx.geometry.Rectangle2D;
+import javafx.geometry.Bounds;
 import javafx.scene.control.ListView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
 import javafx.stage.Popup;
-import javafx.stage.Screen;
 import jdk.jshell.JShell;
 import jdk.jshell.Snippet;
 import jdk.jshell.SnippetEvent;
@@ -81,14 +80,21 @@ public class TextEditorAutoComplete {
             finalCurrentText.set(matcher.group(0));
 
         List<String> suggestions = this.keyphrases.stream()
-                .filter(x -> x.startsWith(finalCurrentText.get()) &&
-                        x.equals(this.autocomplete.getSelectionModel().getSelectedItem()))
+                .filter(x -> x.equals(this.autocomplete.getSelectionModel().getSelectedItem()))
                 .collect(Collectors.toList());
+
+        suggestions.addAll(this.keyphrases.stream()
+                .filter(x -> x.startsWith(finalCurrentText.get()))
+                .collect(Collectors.toList()));
 
         if (!suggestions.isEmpty()) {
             String txt = finalCurrentText.get();
             String suggestion = suggestions.get(0);
             StringBuilder sb = new StringBuilder();
+
+            if (txt.equals(currentText) && txt.contains("."))
+                txt = txt.substring(txt.lastIndexOf('.'));
+
             for (int i = 0; i < suggestion.length(); i++) {
                 if (i >= txt.length() || txt.charAt(i) != suggestion.charAt(i))
                     sb.append(suggestion.charAt(i));
@@ -99,12 +105,12 @@ public class TextEditorAutoComplete {
     }
 
     private void showAutoCompletePopup() {
-        Rectangle2D rect = Screen.getPrimary().getBounds();
-        AtomicReference<Double> maxX = new AtomicReference<>(rect.getWidth() / 2),
-                maxY = new AtomicReference<>(rect.getHeight() / 2);
-        this.keyphrases = this.textEditor.shell.sourceCodeAnalysis()
+        Bounds textBounds = this.textEditor.getCodeArea().getCaretBounds().get();
+        this.keyphrases = this.textEditor.shell
+                .sourceCodeAnalysis()
                 .completionSuggestions(currentLine, currentLine.length(), new int[1])
-                .stream().map(SourceCodeAnalysis.Suggestion::continuation)
+                .stream()
+                .map(SourceCodeAnalysis.Suggestion::continuation)
                 .collect(Collectors.toList());
         if (this.autoCompletePopup != null)
             this.autoCompletePopup.hide();
@@ -113,14 +119,8 @@ public class TextEditorAutoComplete {
             this.autoCompletePopup = new Popup();
             this.autocomplete.setMaxHeight(80);
             this.autoCompletePopup.getContent().add(this.autocomplete);
-            this.textEditor.getCodeArea()
-                    .getCaretBounds()
-                    .ifPresent(x -> {
-                        maxX.set(x.getMaxX());
-                        maxY.set(x.getMaxY());
-                    });
 
-            this.autoCompletePopup.show(this.textEditor.getCodeArea(), maxX.get(), maxY.get());
+            this.autoCompletePopup.show(this.textEditor.getCodeArea(), textBounds.getMaxX(), textBounds.getMaxY());
             if (!this.autocomplete.getItems().isEmpty())
                 this.autocomplete.getSelectionModel().select(0);
         }
@@ -258,9 +258,11 @@ public class TextEditorAutoComplete {
         this.textEditor.getCodeArea().addEventHandler(KeyEvent.KEY_RELEASED, new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent event) {
-                if (Stream.of(KeyCode.SHIFT, KeyCode.ALT, KeyCode.CONTROL, KeyCode.TAB, KeyCode.CAPS, KeyCode.BACK_SPACE,
-                        KeyCode.DELETE, KeyCode.ENTER).noneMatch(x -> event.getCode().equals(x)) &&
-                        !event.getCode().isArrowKey() && !event.isControlDown()) {
+                if (Stream.of(KeyCode.SHIFT, KeyCode.ALT, KeyCode.SHORTCUT, KeyCode.TAB, KeyCode.CAPS,
+                                KeyCode.BACK_SPACE, KeyCode.DELETE, KeyCode.ENTER, KeyCode.META)
+                        .noneMatch(x -> event.getCode().equals(x)) &&
+                        !event.getCode().isArrowKey() && !event.isShortcutDown() && !event.isShiftDown() &&
+                        !event.isAltDown() && !event.isMetaDown()) {
                     int cursorPosition = textEditor.getCodeArea().getCaretPosition();
                     if (cursorPosition > 0) {
                         char bracket = textEditor.getCodeArea().getText(cursorPosition - 1, cursorPosition).charAt(0);
