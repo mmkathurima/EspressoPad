@@ -42,9 +42,26 @@
                     <Button fx:id="jarFinder" onAction="#pickJar" text="Pick JAR file"/>
                 </HBox>
             </VBox>
-            <SplitPane>
-                <ListView fx:id="searchResults"/>
-                <ListView fx:id="artifactView"/>
+            <SplitPane VBox.vgrow="ALWAYS">
+                <VBox>
+                    <Label text="Search results">
+                        <padding>
+                            <Insets bottom="5.0" left="10.0" right="20.0" top="5.0"/>
+                        </padding>
+                    </Label>
+                    <ListView VBox.vgrow="ALWAYS" fx:id="searchResults"/>
+                    <VBox.margin>
+                        <Insets left="10.0" right="10.0"/>
+                    </VBox.margin>
+                </VBox>
+                <VBox>
+                    <Label text="Installed artifacts">
+                        <padding>
+                            <Insets bottom="5.0" left="10.0" right="20.0" top="5.0"/>
+                        </padding>
+                    </Label>
+                    <ListView VBox.vgrow="ALWAYS" fx:id="artifactView"/>
+                </VBox>
                 <VBox.margin>
                     <Insets left="10.0" right="10.0"/>
                 </VBox.margin>
@@ -88,7 +105,11 @@
                     </Button>
                 </HBox>
             </VBox>
-            <ListView fx:id="importView"/>
+            <ListView VBox.vgrow="ALWAYS" fx:id="importView">
+                <VBox.margin>
+                    <Insets left="10.0" right="10.0"/>
+                </VBox.margin>
+            </ListView>
             <Button fx:id="saveImports" text="Save imports">
                 <VBox.margin>
                     <Insets bottom="10.0" left="10.0" right="20.0" top="10.0"/>

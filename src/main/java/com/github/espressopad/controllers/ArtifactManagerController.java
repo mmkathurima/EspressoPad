@@ -138,7 +138,8 @@ public class ArtifactManagerController implements Initializable {
     }
 
     private String getDependencyString() {
-        String dep = null;
+        String dep = String.format("%s:%s:%s", groupID.getText(), artifactID.getText(),
+                version.getText());
         if (!extension.getText().isBlank())
             dep = String.format("%s:%s:%s:%s", groupID.getText(),
                     artifactID.getText(), extension.getText(), version.getText());
