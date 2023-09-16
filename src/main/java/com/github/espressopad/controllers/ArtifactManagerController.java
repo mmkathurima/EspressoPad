@@ -10,10 +10,15 @@ import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.CornerRadii;
+import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import kotlin.Pair;
 
@@ -49,7 +54,15 @@ public class ArtifactManagerController implements Initializable {
     @FXML
     private ListView<String> artifactView;
     @FXML
-    private TextField dependencyQuery;
+    private TextField groupID;
+    @FXML
+    private TextField artifactID;
+    @FXML
+    private TextField extension;
+    @FXML
+    private TextField classifier;
+    @FXML
+    private TextField version;
     @FXML
     private Button dependencyResolver;
     @FXML
@@ -95,8 +108,8 @@ public class ArtifactManagerController implements Initializable {
         this.toggleSearch.selectedProperty().addListener(new ChangeListener<Boolean>() {
             @Override
             public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
-                dependencyQuery.setDisable(!newValue);
-                dependencyResolver.setDisable(!newValue);
+                List.of(dependencyResolver, groupID, artifactID, extension, classifier, version)
+                        .forEach(x -> x.setDisable(!newValue));
             }
         });
 
@@ -115,6 +128,30 @@ public class ArtifactManagerController implements Initializable {
             this.importView.getItems().addAll(this.handler.parseImportXml());
     }
 
+    public void downloadArtifacts() {
+        try {
+            Pair<Path, Path> dependency = this.resolver.download(this.getDependencyString());
+            this.artifactView.getItems().add(dependency.getSecond().toString());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String getDependencyString() {
+        String dep = null;
+        if (!extension.getText().isBlank())
+            dep = String.format("%s:%s:%s:%s", groupID.getText(),
+                    artifactID.getText(), extension.getText(), version.getText());
+        if (!classifier.getText().isBlank())
+            dep = String.format("%s:%s:%s:%s", groupID.getText(),
+                    artifactID.getText(), classifier.getText(), version.getText());
+        if (!extension.getText().isBlank() && !classifier.getText().isBlank())
+            dep = String.format("%s:%s:%s:%s:%s", groupID.getText(),
+                    artifactID.getText(), extension.getText(), classifier.getText(),
+                    version.getText());
+        return dep;
+    }
+
     @FXML
     private void pickJar(ActionEvent event) {
         FileChooser chooser = new FileChooser();
@@ -128,24 +165,32 @@ public class ArtifactManagerController implements Initializable {
 
     @FXML
     private void resolveDependencies(ActionEvent event) {
-        Artifact artifact = this.resolver.artifactFor(this.dependencyQuery.getText());
+        List<TextField> txtFields = List.of(groupID, artifactID, version);
+        Background bg = new TextField().getBackground();
+        Background validation = new Background(new BackgroundFill(
+                Color.hsb(0, .2, 1),
+                CornerRadii.EMPTY,
+                Insets.EMPTY));
+        for (TextField txt : txtFields) {
+            if (txt.getText().isBlank()) {
+                txt.setBackground(validation);
+                return;
+            } else if (txt.getBackground() == validation)
+                txt.setBackground(bg);
+        }
+
+        if (this.getDependencyString() == null)
+            return;
+
+        Artifact artifact = this.resolver.artifactFor(this.getDependencyString());
         ResolvedArtifact resolvedArtifact = this.resolver.resolveArtifact(artifact);
         if (resolvedArtifact != null) {
             this.searchResults.getItems().setAll(String.format("%s:%s:%s", resolvedArtifact.getArtifactId(),
                     resolvedArtifact.getGroupId(), resolvedArtifact.getVersion()));
             this.loadArtifacts.setDisable(false);
         } else {
-            this.searchResults.getItems().setAll(String.format("No results found for %s", this.dependencyQuery.getText()));
+            this.searchResults.getItems().setAll(String.format("No results found for %s", this.getDependencyString()));
             this.loadArtifacts.setDisable(true);
-        }
-    }
-
-    public void downloadArtifacts() {
-        try {
-            Pair<Path, Path> dependency = this.resolver.download(dependencyQuery.getText());
-            this.artifactView.getItems().add(dependency.getSecond().toString());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 

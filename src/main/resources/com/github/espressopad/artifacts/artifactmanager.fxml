@@ -24,13 +24,12 @@
                             <ToggleGroup/>
                         </toggleGroup>
                     </RadioButton>
-                    <TextField fx:id="dependencyQuery" prefHeight="30.0" prefWidth="350.0"
-                               promptText="&lt;groupId&gt;:&lt;artifactId&gt;[:&lt;extension&gt;[:&lt;classifier&gt;]]:&lt;version&gt;">
-                        <tooltip>
-                            <Tooltip
-                                    text="&lt;groupId&gt;:&lt;artifactId&gt;[:&lt;extension&gt;[:&lt;classifier&gt;]]:&lt;version&gt;"/>
-                        </tooltip>
-                    </TextField>
+
+                    <TextField fx:id="groupID" promptText="Group ID"/>
+                    <TextField fx:id="artifactID" promptText="Artifact ID"/>
+                    <TextField fx:id="extension" promptText="Extension"/>
+                    <TextField fx:id="classifier" promptText="Classifier"/>
+                    <TextField fx:id="version" promptText="Version"/>
                     <Button fx:id="dependencyResolver" onAction="#resolveDependencies" prefHeight="30.0"
                             prefWidth="45.0">
                         <graphic>
