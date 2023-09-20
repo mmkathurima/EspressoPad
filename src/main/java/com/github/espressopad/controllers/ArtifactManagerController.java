@@ -166,7 +166,7 @@ public class ArtifactManagerController implements Initializable {
 
     @FXML
     private void resolveDependencies(ActionEvent event) {
-        List<TextField> txtFields = List.of(groupID, artifactID, version);
+        TextField[] txtFields = {groupID, artifactID, version};
         Background bg = new TextField().getBackground();
         Background validation = new Background(new BackgroundFill(
                 Color.hsb(0, .2, 1),
@@ -179,9 +179,6 @@ public class ArtifactManagerController implements Initializable {
             } else if (txt.getBackground() == validation)
                 txt.setBackground(bg);
         }
-
-        if (this.getDependencyString() == null)
-            return;
 
         Artifact artifact = this.resolver.artifactFor(this.getDependencyString());
         ResolvedArtifact resolvedArtifact = this.resolver.resolveArtifact(artifact);

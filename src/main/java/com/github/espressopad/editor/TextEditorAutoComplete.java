@@ -105,7 +105,7 @@ public class TextEditorAutoComplete {
     }
 
     private void showAutoCompletePopup() {
-        Bounds textBounds = this.textEditor.getCodeArea().getCaretBounds().get();
+        Bounds textBounds;
         this.keyphrases = this.textEditor.shell
                 .sourceCodeAnalysis()
                 .completionSuggestions(currentLine, currentLine.length(), new int[1])
@@ -120,6 +120,7 @@ public class TextEditorAutoComplete {
             this.autocomplete.setMaxHeight(80);
             this.autoCompletePopup.getContent().add(this.autocomplete);
 
+            textBounds = this.textEditor.getCodeArea().getCaretBounds().get();
             this.autoCompletePopup.show(this.textEditor.getCodeArea(), textBounds.getMaxX(), textBounds.getMaxY());
             if (!this.autocomplete.getItems().isEmpty())
                 this.autocomplete.getSelectionModel().select(0);
@@ -261,8 +262,8 @@ public class TextEditorAutoComplete {
                 if (Stream.of(KeyCode.SHIFT, KeyCode.ALT, KeyCode.SHORTCUT, KeyCode.TAB, KeyCode.CAPS,
                                 KeyCode.BACK_SPACE, KeyCode.DELETE, KeyCode.ENTER, KeyCode.META)
                         .noneMatch(x -> event.getCode().equals(x)) &&
-                        !event.getCode().isArrowKey() && !event.isShortcutDown() && !event.isShiftDown() &&
-                        !event.isAltDown() && !event.isMetaDown()) {
+                        !event.getCode().isArrowKey() && !event.isShortcutDown() && !event.isAltDown() &&
+                        !event.isMetaDown()) {
                     int cursorPosition = textEditor.getCodeArea().getCaretPosition();
                     if (cursorPosition > 0) {
                         char bracket = textEditor.getCodeArea().getText(cursorPosition - 1, cursorPosition).charAt(0);
