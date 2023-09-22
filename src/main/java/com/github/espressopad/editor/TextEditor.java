@@ -65,13 +65,24 @@ public class TextEditor {
             String styleClass; /* never happens */
             if (matcher.group("KEYWORD") != null)
                 styleClass = "keyword";
-            else styleClass = matcher.group("PAREN") != null ? "paren" :
-                    matcher.group("BRACE") != null ? "brace" :
-                            matcher.group("BRACKET") != null ? "bracket" :
-                                    matcher.group("SEMICOLON") != null ? "semicolon" :
-                                            matcher.group("STRING") != null ? "string" :
-                                                    matcher.group("COMMENT") != null ? "comment" :
-                                                            null;
+            else if (matcher.group("PAREN") != null)
+                styleClass = "paren";
+            else if (matcher.group("BRACE") != null)
+                styleClass = "brace";
+            else if (matcher.group("BRACKET") != null)
+                styleClass = "bracket";
+            else if (matcher.group("SEMICOLON") != null)
+                styleClass = "semicolon";
+            else if (matcher.group("STRING") != null)
+                styleClass = "string";
+            else if (matcher.group("NUMBER") != null &&
+                    !matcher.group("NUMBER").isBlank() &&
+                    !matcher.group("NUMBER").equals("."))
+                styleClass = "number";
+            else if (matcher.group("COMMENT") != null)
+                styleClass = "comment";
+            else
+                styleClass = null;
             assert styleClass != null;
             spansBuilder.add(Collections.emptyList(), matcher.start() - lastKwEnd);
             spansBuilder.add(Collections.singleton(styleClass), matcher.end() - matcher.start());
@@ -104,9 +115,9 @@ public class TextEditor {
 
     private Task<StyleSpans<Collection<String>>> computeHighlightingAsync() {
         String text = codeArea.getText();
-        Task<StyleSpans<Collection<String>>> task = new Task<StyleSpans<Collection<String>>>() {
+        Task<StyleSpans<Collection<String>>> task = new Task<>() {
             @Override
-            protected StyleSpans<Collection<String>> call() throws Exception {
+            protected StyleSpans<Collection<String>> call() {
                 return TextEditor.computeHighlighting(text);
             }
         };

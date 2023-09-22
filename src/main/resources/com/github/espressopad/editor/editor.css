@@ -12,7 +12,7 @@
     -fx-font-weight: bold;
 }
 
-.string {
+.string, .number {
     -fx-fill: blue;
 }
 

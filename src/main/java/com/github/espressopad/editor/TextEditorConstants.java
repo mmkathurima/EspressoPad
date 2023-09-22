@@ -15,13 +15,13 @@ public class TextEditorConstants {
             "abstract", "assert", "boolean", "break", "byte",
             "case", "catch", "char", "class", "const",
             "continue", "default", "do", "double", "else",
-            "enum", "extends", "final", "finally", "float",
-            "for", "goto", "if", "implements", "import",
+            "enum", "extends", "false", "final", "finally",
+            "float", "for", "goto", "if", "implements", "import",
             "instanceof", "int", "interface", "long", "native",
             "new", "null", "package", "private", "protected",
             "public", "return", "short", "static", "strictfp",
             "super", "switch", "synchronized", "this", "throw",
-            "throws", "transient", "try", "var", "void",
+            "throws", "transient", "true", "try", "var", "void",
             "volatile", "while"
     };
     private static final String KEYWORD_PATTERN = "\\b(" + String.join("|", KEYWORDS) + ")\\b";
@@ -30,6 +30,8 @@ public class TextEditorConstants {
     private static final String BRACKET_PATTERN = "\\[|\\]";
     private static final String SEMICOLON_PATTERN = "\\;";
     private static final String STRING_PATTERN = "(\"([^\"\\\\]|\\\\.)*\"|'.?')";
+    private static final String NUMBER_PATTERN = "\\b([-+]?((0[xX])(\\d*[a-fA-F0-9_]+\\d*))|" +
+            "((0[bB])[01_]+)|(0[oO][0-7_]+)|([0-9]*\\.?_*[eE]?[0-9]*))[dDfFLl]?\\b";
     private static final String COMMENT_PATTERN = "//[^\n]*" + "|" + "/\\*(.|\\R)*?\\*/";
     protected static final Pattern PATTERN = Pattern.compile(
             "(?<KEYWORD>" + KEYWORD_PATTERN + ")"
@@ -38,6 +40,7 @@ public class TextEditorConstants {
                     + "|(?<BRACKET>" + BRACKET_PATTERN + ")"
                     + "|(?<SEMICOLON>" + SEMICOLON_PATTERN + ")"
                     + "|(?<STRING>" + STRING_PATTERN + ")"
+                    + "|(?<NUMBER>" + NUMBER_PATTERN + ")"
                     + "|(?<COMMENT>" + COMMENT_PATTERN + ")"
     );
 }
