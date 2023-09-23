@@ -12,7 +12,7 @@
     -fx-font-weight: bold;
 }
 
-.string, .number {
+.string {
     -fx-fill: blue;
 }
 
@@ -35,4 +35,13 @@
 .matchBracket {
     -rtfx-background-color: firebrick;
     -fx-fill: white;
+}
+
+.number {
+    -fx-fill: #105BD4;
+}
+
+.findMatch {
+    -rtfx-background-color: lightsalmon;
+    -fx-fill: black;
 }

@@ -57,7 +57,28 @@ public class TextEditor {
         tab.getTabPane().getStylesheets().add(this.getClass().getResource("editor.css").toExternalForm());
     }
 
-    private static StyleSpans<Collection<String>> computeHighlighting(String text) {
+    public Subscription getSubscriber() {
+        return subscriber;
+    }
+
+    private void setSubscriber(Subscription subscriber) {
+        this.subscriber = subscriber;
+    }
+
+    public CodeArea getCodeArea() {
+        return codeArea;
+    }
+
+    public Tab getTab() {
+        return this.tab;
+    }
+
+    public void stop() throws IOException {
+        this.executor.shutdown();
+        this.shell.stop();
+    }
+
+    public static StyleSpans<Collection<String>> computeHighlighting(String text) {
         Matcher matcher = TextEditorConstants.PATTERN.matcher(text);
         int lastKwEnd = 0;
         StyleSpansBuilder<Collection<String>> spansBuilder = new StyleSpansBuilder<>();
@@ -92,27 +113,6 @@ public class TextEditor {
         return spansBuilder.create();
     }
 
-    public Subscription getSubscriber() {
-        return subscriber;
-    }
-
-    protected void setSubscriber(Subscription subscriber) {
-        this.subscriber = subscriber;
-    }
-
-    public CodeArea getCodeArea() {
-        return codeArea;
-    }
-
-    public Tab getTab() {
-        return this.tab;
-    }
-
-    public void stop() throws IOException {
-        this.executor.shutdown();
-        this.shell.stop();
-    }
-
     private Task<StyleSpans<Collection<String>>> computeHighlightingAsync() {
         String text = codeArea.getText();
         Task<StyleSpans<Collection<String>>> task = new Task<>() {
@@ -125,7 +125,7 @@ public class TextEditor {
         return task;
     }
 
-    private void applyHighlighting(StyleSpans<Collection<String>> highlighting) {
+    public void applyHighlighting(StyleSpans<Collection<String>> highlighting) {
         codeArea.setStyleSpans(0, highlighting);
     }
 }

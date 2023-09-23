@@ -124,3 +124,11 @@
 .comment {
     -fx-fill: cadetblue !important;
 }
+
+.hyperlink {
+    -fx-text-fill: #5FAFF9;
+}
+
+.findMatch {
+    -fx-fill: black !important;
+}

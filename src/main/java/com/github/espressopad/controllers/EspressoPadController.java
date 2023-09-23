@@ -48,6 +48,7 @@ import jdk.jshell.JShellException;
 import jdk.jshell.SnippetEvent;
 import jdk.jshell.SourceCodeAnalysis;
 import org.fxmisc.richtext.CodeArea;
+import org.fxmisc.richtext.NavigationActions;
 import org.fxmisc.richtext.model.TwoDimensional;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -262,6 +263,15 @@ public class EspressoPadController implements Initializable {
             });
         }
         this.documentationView.getEngine().loadContent("<div/>");
+
+        this.findText.textProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+                if (findText.getText().isBlank())
+                    resetHighlighting();
+                getSearchResults();
+            }
+        });
 
         try {
             for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
@@ -899,8 +909,13 @@ public class EspressoPadController implements Initializable {
     private void toggleFindReplace(ActionEvent event) {
         this.findReplaceBox.setVisible(!this.findReplaceBox.isVisible());
         this.toggleFindReplaceMenuItem.setSelected(this.findReplaceBox.isVisible());
-        if (this.findReplaceBox.isVisible())
+        if (this.findReplaceBox.isVisible()) {
+            String selection = this.getCurrentTextEditor().getCodeArea().getSelectedText();
+            if (!selection.isBlank())
+                this.findText.setText(selection);
             this.findText.requestFocus();
+            this.getSearchResults();
+        } else this.resetHighlighting();
     }
 
     private List<Integer> indicesOf(String haystack, String needle,
@@ -992,6 +1007,12 @@ public class EspressoPadController implements Initializable {
         }
     }
 
+    private void getSearchResults() {
+        this.currentSelectionIndex = 0;
+        this.getSearchResults(this.indicesOf(this.getCurrentTextEditor().getCodeArea().getText(), this.findText.getText(),
+                !this.matchCase.isSelected(), this.matchRegex.isSelected(), this.matchWord.isSelected()));
+    }
+
     private void getSearchResults(List<Integer> indices) {
         CodeArea area = this.getCurrentTextEditor().getCodeArea();
         TwoDimensional.Position caretPos = area.offsetToPosition(area.getCaretPosition(),
@@ -999,11 +1020,21 @@ public class EspressoPadController implements Initializable {
 
         if (!indices.isEmpty()) {
             int j = indices.get(currentSelectionIndex);
-            area.selectRange(j, j + this.findText.getText().length());
+            int len = this.findText.getText().length();
+            this.resetHighlighting();
+            for (int index : indices)
+                area.setStyle(index, index + len, Collections.singletonList("findMatch"));
+            area.moveTo(j, NavigationActions.SelectionPolicy.CLEAR);
+            area.selectRange(j, j + len);
             findResults.setText(String.format("Result %d of %d", currentSelectionIndex + 1, indices.size()));
         } else {
             area.moveTo(caretPos.getMajor(), caretPos.getMinor());
             findResults.setText("No Results");
         }
+    }
+
+    private void resetHighlighting() {
+        this.getCurrentTextEditor().applyHighlighting(TextEditor.computeHighlighting(
+                this.getCurrentTextEditor().getCodeArea().getText()));
     }
 }

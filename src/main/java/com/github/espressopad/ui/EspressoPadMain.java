@@ -14,10 +14,6 @@ import java.util.Objects;
 public class EspressoPadMain extends Application {
     private EspressoPadController controller;
 
-    public static void main(String[] args) {
-        launch(args);
-    }
-
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(this.getClass().getResource("espressopad.fxml")));
@@ -51,5 +47,9 @@ public class EspressoPadMain extends Application {
         if (OsThemeDetector.isSupported() && OsThemeDetector.getDetector().isDark())
             scene.getStylesheets().add(darkStyle);
         else scene.getStylesheets().remove(darkStyle);
+    }
+
+    public static void main(String[] args) {
+        launch(args);
     }
 }
