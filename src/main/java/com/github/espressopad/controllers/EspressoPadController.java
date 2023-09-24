@@ -442,10 +442,6 @@ public class EspressoPadController implements Initializable {
         Task<Void> runTask = new Task<Void>() {
             @Override
             protected Void call() {
-                var output = document.getElementById("output");
-                if (output != null && !output.html().isBlank())
-                    output.html("");
-
                 String code = getEditors()
                         .get(tabPane.getTabs().indexOf(tabPane.getSelectionModel().getSelectedItem()) + 1)
                         .getCodeArea().getText();
@@ -520,6 +516,13 @@ public class EspressoPadController implements Initializable {
         };
         runTask.setOnSucceeded(handler);
         runTask.setOnFailed(handler);
+
+        org.jsoup.nodes.Element output = document.getElementById("output");
+        if (output != null && !output.html().isBlank())
+            output.html("");
+
+        EspressoPadController.this.output.getEngine()
+                .executeScript("document.getElementById('output').innerHTML = '';");
         new Thread(runTask).start();
     }
 
@@ -539,7 +542,7 @@ public class EspressoPadController implements Initializable {
                         if (empty) {
                             setText(null);
                             setGraphic(null);
-                        } else if (Objects.equals(getFileExtension(item.getName()), "jepl") || item.isDirectory()) {
+                        } else if (Objects.equals(getFileExtension(item.getName()), "jsh") || item.isDirectory()) {
                             setText(item.getName());
                             setGraphic(new FontIcon(item.isFile() ? "fas-file-code" : "fas-folder-open"));
                         }
@@ -687,7 +690,8 @@ public class EspressoPadController implements Initializable {
 
     private FileChooser setupFileChooser(Path path) {
         FileChooser chooser = new FileChooser();
-        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JEPL Files", "*.jepl"));
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(
+                String.format("%s Files", this.stage.getTitle()), "*.jsh"));
         chooser.setInitialDirectory(path.toFile());
         return chooser;
     }
@@ -1017,11 +1021,11 @@ public class EspressoPadController implements Initializable {
         CodeArea area = this.getCurrentTextEditor().getCodeArea();
         TwoDimensional.Position caretPos = area.offsetToPosition(area.getCaretPosition(),
                 TwoDimensional.Bias.Forward);
+        this.resetHighlighting();
 
         if (!indices.isEmpty()) {
             int j = indices.get(currentSelectionIndex);
             int len = this.findText.getText().length();
-            this.resetHighlighting();
             for (int index : indices)
                 area.setStyle(index, index + len, Collections.singletonList("findMatch"));
             area.moveTo(j, NavigationActions.SelectionPolicy.CLEAR);

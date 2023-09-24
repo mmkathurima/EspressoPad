@@ -259,11 +259,10 @@ public class TextEditorAutoComplete {
         this.textEditor.getCodeArea().addEventHandler(KeyEvent.KEY_RELEASED, new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent event) {
-                if (Stream.of(KeyCode.SHIFT, KeyCode.ALT, KeyCode.SHORTCUT, KeyCode.TAB, KeyCode.CAPS,
+                if (Stream.of(KeyCode.SHIFT, KeyCode.ALT, KeyCode.SHORTCUT, KeyCode.CONTROL, KeyCode.TAB, KeyCode.CAPS,
                                 KeyCode.BACK_SPACE, KeyCode.DELETE, KeyCode.ENTER, KeyCode.META)
-                        .noneMatch(x -> event.getCode().equals(x)) &&
-                        !event.getCode().isArrowKey() && !event.isShortcutDown() && !event.isAltDown() &&
-                        !event.isMetaDown()) {
+                        .noneMatch(x -> event.getCode().equals(x)) && !event.getCode().isArrowKey() &&
+                        !event.isShortcutDown() && !event.isAltDown() && !event.isMetaDown()) {
                     int cursorPosition = textEditor.getCodeArea().getCaretPosition();
                     if (cursorPosition > 0) {
                         char bracket = textEditor.getCodeArea().getText(cursorPosition - 1, cursorPosition).charAt(0);
