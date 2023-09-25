@@ -64,7 +64,7 @@ public class About extends Application {
         productName.setFont(Font.font(Font.getDefault().getFamily(), FontWeight.EXTRA_BOLD, 36d));
         productName.setAlignment(Pos.CENTER);
 
-        Label details = new Label(String.format("v0.18\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
+        Label details = new Label(String.format("v0.18.2\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
                 System.getProperty("java.vm.vendor"), System.getProperty("java.vm.version"),
                 System.getProperty("os.arch"), System.getProperty("java.vm.name")));
         details.setAlignment(Pos.CENTER);
@@ -196,16 +196,18 @@ public class About extends Application {
 
         VBox propertyBox = new VBox(filterProperty, tableView);
 
-        Accordion accordion = new Accordion();
-        accordion.getPanes().addAll(new TitledPane("Libraries used", dependencyView),
-                new TitledPane("Properties", propertyBox));
+        TabPane tabPane = new TabPane();
+        tabPane.getTabs().addAll(new Tab("Properties", propertyBox),
+                new Tab("Libraries used", dependencyView));
+        for (Tab x : tabPane.getTabs())
+            x.setClosable(false);
 
-        VBox box = new VBox(vBox, accordion, btnBox);
+        VBox box = new VBox(vBox, tabPane, btnBox);
         box.setPrefWidth(500d);
 
         for (VBox v : new VBox[]{propertyBox, box}) {
             v.setSpacing(15d);
-            v.setPadding(new Insets(15d));
+            v.setPadding(new Insets(15d, 10d, 5d, 10d));
         }
 
         ScrollPane scrollPane = new ScrollPane(box);
