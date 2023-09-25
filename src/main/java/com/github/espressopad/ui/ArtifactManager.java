@@ -46,7 +46,9 @@ public class ArtifactManager extends Application {
                     }
 
                     controller.getHandler().writeArtifactXml(artifacts);
-                    new Alert(Alert.AlertType.INFORMATION, "Artifacts added to classpath.").showAndWait();
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION, "Artifacts added to classpath.");
+                    EspressoPadMain.setThemeResource(alert.getDialogPane().getScene());
+                    alert.showAndWait();
                     //stage.close();
                 }
             }
@@ -64,7 +66,9 @@ public class ArtifactManager extends Application {
                     x.getShell().eval(String.format("import %s;", importList));
 
                 controller.getHandler().writeImportXml(controller.getImportView().getItems());
-                new Alert(Alert.AlertType.INFORMATION, "Imports added.").showAndWait();
+                Alert alert = new Alert(Alert.AlertType.INFORMATION, "Imports added.");
+                EspressoPadMain.setThemeResource(alert.getDialogPane().getScene());
+                alert.showAndWait();
             }
         });
         EspressoPadMain.setThemeResource(scene);

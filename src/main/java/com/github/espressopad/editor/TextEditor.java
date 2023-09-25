@@ -24,13 +24,34 @@ public class TextEditor {
     private final CustomCodeArea codeArea;
     private final ExecutorService executor;
     private final Tab tab;
+    private final BracketHighlighter highlighter;
     protected JShell shell;
     private Subscription subscriber;
+
+    public Subscription getSubscriber() {
+        return subscriber;
+    }
+
+    private void setSubscriber(Subscription subscriber) {
+        this.subscriber = subscriber;
+    }
+
+    public CodeArea getCodeArea() {
+        return codeArea;
+    }
+
+    public Tab getTab() {
+        return this.tab;
+    }
+
+    public BracketHighlighter getHighlighter() {
+        return this.highlighter;
+    }
 
     public TextEditor(Tab tab) {
         this.tab = tab;
         this.codeArea = new CustomCodeArea();
-        new BracketHighlighter(this.codeArea);
+        this.highlighter = new BracketHighlighter(this.codeArea);
         this.executor = Executors.newSingleThreadExecutor();
         this.codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
         this.setSubscriber(codeArea.multiPlainChanges()
@@ -55,22 +76,6 @@ public class TextEditor {
         this.codeArea.setWrapText(true);
         tab.setContent(new StackPane(new VirtualizedScrollPane<>(this.codeArea)));
         tab.getTabPane().getStylesheets().add(this.getClass().getResource("editor.css").toExternalForm());
-    }
-
-    public Subscription getSubscriber() {
-        return subscriber;
-    }
-
-    private void setSubscriber(Subscription subscriber) {
-        this.subscriber = subscriber;
-    }
-
-    public CodeArea getCodeArea() {
-        return codeArea;
-    }
-
-    public Tab getTab() {
-        return this.tab;
     }
 
     public void stop() throws IOException {

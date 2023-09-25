@@ -73,7 +73,7 @@ public class ArtifactManagerController implements Initializable {
     private final ArtifactResolver resolver = new ArtifactResolver();
 
     public XmlHandler getHandler() {
-        return handler;
+        return this.handler;
     }
 
     public List<String> getArtifacts() {

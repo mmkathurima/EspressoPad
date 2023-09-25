@@ -10,6 +10,7 @@ import com.github.espressopad.io.ConsoleInputStream;
 import com.github.espressopad.io.ConsoleOutputStream;
 import com.github.espressopad.ui.About;
 import com.github.espressopad.ui.ArtifactManager;
+import com.github.espressopad.ui.EspressoPadMain;
 import com.github.espressopad.ui.FilePathTreeItem;
 import com.github.espressopad.xml.XmlHandler;
 import com.jthemedetecor.OsThemeDetector;
@@ -17,6 +18,9 @@ import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.concurrent.Worker;
 import javafx.concurrent.WorkerStateEvent;
@@ -105,10 +109,12 @@ public class EspressoPadController implements Initializable {
     private ToggleButton matchRegex;
     @FXML
     private TextField replacementText;
+    @FXML
+    private Label cursorPosition;
 
     private final XmlHandler handler = new XmlHandler();
-    private final List<TextEditor> editors = new ArrayList<>();
-    private final List<TextEditorAutoComplete> tacs = new ArrayList<>();
+    private final ObservableList<TextEditor> editors = FXCollections.observableArrayList();
+    private final List<TextEditorAutoComplete> autoCompleters = new ArrayList<>();
     private final Map<TextEditor, File> savedOpenFiles = new LinkedHashMap<>();
     private ConsoleOutputStream out;
     private ConsoleErrorStream err;
@@ -137,11 +143,11 @@ public class EspressoPadController implements Initializable {
     }
 
     public List<TextEditorAutoComplete> getAutocompletes() {
-        return this.tacs;
+        return this.autoCompleters;
     }
 
     public JShell getShell() {
-        return shell;
+        return this.shell;
     }
 
     public WebView getOutput() {
@@ -178,8 +184,28 @@ public class EspressoPadController implements Initializable {
         TextEditor editor = new TextEditor(this.tabPane.getTabs().get(this.tabPane.getTabs().indexOf(tab) - 1));
         this.handler.writeImportXml(List.of("java.util.stream.*", "java.util.*", "java.io.*"));
         TextEditorAutoComplete tac = new TextEditorAutoComplete(editor, this);
-        this.tacs.add(tac);
+        this.autoCompleters.add(tac);
         this.editors.add(editor);
+        this.editors.addListener(new ListChangeListener<TextEditor>() {
+            @Override
+            public void onChanged(Change<? extends TextEditor> c) {
+                while (c.next()) {
+                    if (c.wasAdded()) {
+                        for (TextEditor textEditor : c.getAddedSubList()) {
+                            CodeArea codeArea = textEditor.getCodeArea();
+                            codeArea.caretPositionProperty().addListener(new ChangeListener<Integer>() {
+                                @Override
+                                public void changed(ObservableValue<? extends Integer> observable, Integer oldValue,
+                                                    Integer newValue) {
+                                    textEditor.getHighlighter().highlightBracket(newValue);
+                                    setCurrentPosition(codeArea);
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        });
         try (InputStream stream = this.getClass().getResourceAsStream("default-webview.html")) {
             if (stream != null) {
                 this.html = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
@@ -218,6 +244,7 @@ public class EspressoPadController implements Initializable {
 
         this.refreshFileTree();
         this.setupContextMenu();
+        this.setCurrentPosition(editor.getCodeArea());
 
         try {
             File shelf = this.homePath.resolve("shelf").toFile();
@@ -231,7 +258,7 @@ public class EspressoPadController implements Initializable {
                     textEditor.getCodeArea().replaceText(Files.readString(shelfFile.toPath()));
                     TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor, shelfFile.getName(),
                             this);
-                    this.tacs.add(autoComplete);
+                    this.autoCompleters.add(autoComplete);
                     this.editors.add(textEditor);
                     this.setTabEvents(textEditor, autoComplete);
                 }
@@ -251,7 +278,7 @@ public class EspressoPadController implements Initializable {
                             org.w3c.dom.Document doc = engine.getDocument();
                             Element styleNode = doc.createElement("style");
                             org.w3c.dom.Text styleContent = doc.createTextNode(
-                                    "body { background-color: #373e43; color: white; }" +
+                                    "body { background-color: #333; color: white; }" +
                                             "summary { background-color: #202020 !important; }" +
                                             "a { color: lightskyblue; } a:active, a:visited { color: mediumorchid; }" +
                                             ".err { color: #D76A66 !important;}");
@@ -284,6 +311,13 @@ public class EspressoPadController implements Initializable {
                  UnsupportedLookAndFeelException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void setCurrentPosition(CodeArea codeArea) {
+        TwoDimensional.Position caretPos = codeArea.offsetToPosition(codeArea.getCaretPosition(),
+                TwoDimensional.Bias.Forward);
+        cursorPosition.setText(String.format("Line %d, Col %d",
+                caretPos.getMajor() + 1, caretPos.getMinor() + 1));
     }
 
     private static String getFileExtension(String fileName) {
@@ -380,7 +414,7 @@ public class EspressoPadController implements Initializable {
     }
 
     private void closeAllPopups() {
-        tacs.stream().filter(x -> x.getAutoCompletePopup() != null && x.getAutoCompletePopup().isShowing())
+        this.autoCompleters.stream().filter(x -> x.getAutoCompletePopup() != null && x.getAutoCompletePopup().isShowing())
                 .forEach(x -> x.getAutoCompletePopup().hide());
     }
 
@@ -400,8 +434,9 @@ public class EspressoPadController implements Initializable {
                     TextEditor textEditor = new TextEditor(tab);
                     TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor, currentFile,
                             EspressoPadController.this);
-                    tacs.add(autoComplete);
+                    autoCompleters.add(autoComplete);
                     editors.add(textEditor);
+
                     // Selecting the tab before the button, which is the newly created one
                     tabPane.getSelectionModel().select(tabPane.getTabs().size() - 2);
                     setTabEvents(textEditor, autoComplete);
@@ -521,8 +556,7 @@ public class EspressoPadController implements Initializable {
         if (output != null && !output.html().isBlank())
             output.html("");
 
-        EspressoPadController.this.output.getEngine()
-                .executeScript("document.getElementById('output').innerHTML = '';");
+        this.output.getEngine().executeScript("document.getElementById('output').innerHTML = '';");
         new Thread(runTask).start();
     }
 
@@ -567,6 +601,7 @@ public class EspressoPadController implements Initializable {
                     String fileNameWOExt = fileName.replaceFirst("[.][^.]+$", "");
 
                     TextInputDialog dialog = new TextInputDialog(fileNameWOExt);
+                    EspressoPadMain.setThemeResource(dialog.getDialogPane().getScene());
                     dialog.setTitle(stage.getTitle());
                     dialog.setHeaderText(String.format("Rename %s to:", fileName));
                     dialog.setContentText("New file name:");
@@ -576,9 +611,12 @@ public class EspressoPadController implements Initializable {
                             if (file.renameTo(path.toFile())) {
                                 refreshFileTree();
                                 getCurrentTextEditor().getTab().setText(String.valueOf(path.getFileName()));
-                            } else
-                                new Alert(Alert.AlertType.ERROR, String.format("Renaming '%s' failed.", fileName))
-                                        .showAndWait();
+                            } else {
+                                Alert alert = new Alert(Alert.AlertType.ERROR,
+                                        String.format("Renaming '%s' failed.", fileName));
+                                EspressoPadMain.setThemeResource(alert.getDialogPane().getScene());
+                                alert.showAndWait();
+                            }
                         }
                     });
                 }
@@ -591,16 +629,21 @@ public class EspressoPadController implements Initializable {
             public void handle(ActionEvent event) {
                 File file = cell.getItem();
                 if (file != null) {
-                    new Alert(Alert.AlertType.WARNING,
+                    Alert alert = new Alert(Alert.AlertType.WARNING,
                             String.format("Are you sure you want to delete file '%s'?", file.getName()),
-                            ButtonType.OK, ButtonType.CANCEL)
-                            .showAndWait()
+                            ButtonType.OK, ButtonType.CANCEL);
+                    EspressoPadMain.setThemeResource(alert.getDialogPane().getScene());
+                    alert.showAndWait()
                             .filter(x -> x == ButtonType.OK)
                             .ifPresent(x -> {
                                 if (file.delete())
                                     refreshFileTree();
-                                else new Alert(Alert.AlertType.ERROR, String.format("Deleting '%s' failed.",
-                                        file.getName())).showAndWait();
+                                else {
+                                    Alert dialog = new Alert(Alert.AlertType.ERROR, String.format("Deleting '%s' failed.",
+                                            file.getName()));
+                                    EspressoPadMain.setThemeResource(dialog.getDialogPane().getScene());
+                                    dialog.showAndWait();
+                                }
                             });
                 }
             }
@@ -647,6 +690,19 @@ public class EspressoPadController implements Initializable {
     private void refreshFileTree() {
         this.treeView.setRoot(new FilePathTreeItem(this.validateDefaultDirectory().toFile()));
         this.treeView.getRoot().setExpanded(true);
+        this.treeView.getRoot().getChildren()
+                .setAll(this.treeView.getRoot().getChildren().stream().sorted(new Comparator<>() {
+                    @Override
+                    public int compare(TreeItem<File> o1, TreeItem<File> o2) {
+                        if (!o1.isLeaf() && o2.isLeaf())
+                            return -1;
+                        else if (o1.isLeaf() && o2.isLeaf())
+                            return 0;
+                        else if (o1.isLeaf() && !o2.isLeaf())
+                            return 1;
+                        return -1;
+                    }
+                }).collect(Collectors.toList()));
     }
 
     private Path validateDefaultDirectory() {
@@ -676,7 +732,7 @@ public class EspressoPadController implements Initializable {
                     textEditor.getSubscriber().unsubscribe();
                     textEditor.stop();
                     editors.remove(textEditor);
-                    tacs.remove(autoComplete);
+                    autoCompleters.remove(autoComplete);
                     savedOpenFiles.remove(textEditor);
 
                     for (var editor : editors)
@@ -780,7 +836,19 @@ public class EspressoPadController implements Initializable {
                     }
                 }
                 this.refreshFileTree();
+                this.selectTreeItem(file, this.treeView.getRoot());
             }
+        }
+    }
+
+    private void selectTreeItem(File file, TreeItem<File> root) {
+        for (TreeItem<File> child : root.getChildren()) {
+            if (child.getChildren().isEmpty()) {
+                if (child.getValue().getPath().equals(file.getPath())) {
+                    this.treeView.getSelectionModel().select(child);
+                    child.getParent().setExpanded(true);
+                }
+            } else selectTreeItem(file, child);
         }
     }
 
@@ -826,6 +894,7 @@ public class EspressoPadController implements Initializable {
                 TwoDimensional.Bias.Forward);
         TextInputDialog dialog = new TextInputDialog(String.format("%d:%d", caretPos.getMajor() + 1,
                 caretPos.getMinor()));
+        EspressoPadMain.setThemeResource(dialog.getDialogPane().getScene());
         dialog.setTitle(this.stage.getTitle());
         dialog.setHeaderText("Go to line:");
         dialog.setContentText("[Line] [:column]:");

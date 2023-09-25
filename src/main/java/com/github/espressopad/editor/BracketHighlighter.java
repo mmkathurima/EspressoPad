@@ -1,9 +1,5 @@
 package com.github.espressopad.editor;
 
-import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -34,17 +30,6 @@ public class BracketHighlighter {
                 BracketHighlighter.this.clearBracket();
             }
         });
-        this.codeArea.caretPositionProperty().addListener(new ChangeListener<Integer>() {
-            @Override
-            public void changed(ObservableValue<? extends Integer> obs, Integer oldVal, Integer newVal) {
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        BracketHighlighter.this.highlightBracket(newVal);
-                    }
-                });
-            }
-        });
     }
 
     /**
@@ -59,7 +44,7 @@ public class BracketHighlighter {
      *
      * @param newVal the new caret position
      */
-    private void highlightBracket(int newVal) {
+    public void highlightBracket(int newVal) {
         // first clear existing bracket highlights
         this.clearBracket();
 
