@@ -313,6 +313,16 @@ public class EspressoPadController implements Initializable {
         }
     }
 
+    private int getTreeItemComparator(TreeItem<File> o1, TreeItem<File> o2) {
+        if (!o1.isLeaf() && o2.isLeaf())
+            return -1;
+        else if (o1.isLeaf() && o2.isLeaf())
+            return 0;
+        else if (o1.isLeaf() && !o2.isLeaf())
+            return 1;
+        return -1;
+    }
+
     private void setCurrentPosition(CodeArea codeArea) {
         TwoDimensional.Position caretPos = codeArea.offsetToPosition(codeArea.getCaretPosition(),
                 TwoDimensional.Bias.Forward);
@@ -320,7 +330,7 @@ public class EspressoPadController implements Initializable {
                 caretPos.getMajor() + 1, caretPos.getMinor() + 1));
     }
 
-    private static String getFileExtension(String fileName) {
+    private String getFileExtension(String fileName) {
         String extension = "";
 
         int i = fileName.lastIndexOf('.');
@@ -331,7 +341,7 @@ public class EspressoPadController implements Initializable {
         return extension;
     }
 
-    static boolean compareFilesByLine(Path path1, Path path2) {
+    private boolean compareFilesByLine(Path path1, Path path2) {
         try (BufferedReader bf1 = Files.newBufferedReader(path1);
              BufferedReader bf2 = Files.newBufferedReader(path2)) {
             for (String line1, line2; (line1 = bf1.readLine()) != null; ) {
@@ -690,19 +700,10 @@ public class EspressoPadController implements Initializable {
     private void refreshFileTree() {
         this.treeView.setRoot(new FilePathTreeItem(this.validateDefaultDirectory().toFile()));
         this.treeView.getRoot().setExpanded(true);
-        this.treeView.getRoot().getChildren()
-                .setAll(this.treeView.getRoot().getChildren().stream().sorted(new Comparator<>() {
-                    @Override
-                    public int compare(TreeItem<File> o1, TreeItem<File> o2) {
-                        if (!o1.isLeaf() && o2.isLeaf())
-                            return -1;
-                        else if (o1.isLeaf() && o2.isLeaf())
-                            return 0;
-                        else if (o1.isLeaf() && !o2.isLeaf())
-                            return 1;
-                        return -1;
-                    }
-                }).collect(Collectors.toList()));
+        this.iterateTree(null, this.treeView.getRoot());
+        this.treeView.getRoot()
+                .getChildren()
+                .setAll(this.treeView.getRoot().getChildren().sorted(this::getTreeItemComparator));
     }
 
     private Path validateDefaultDirectory() {
@@ -831,24 +832,27 @@ public class EspressoPadController implements Initializable {
                 this.shelvedFiles = shelf.listFiles();
                 if (this.shelvedFiles != null && this.shelvedFiles.length > 0) {
                     for (File f : this.shelvedFiles) {
-                        if (compareFilesByLine(f.toPath(), file.toPath()) && f.delete())
+                        if (this.compareFilesByLine(f.toPath(), file.toPath()) && f.delete())
                             break;
                     }
                 }
                 this.refreshFileTree();
-                this.selectTreeItem(file, this.treeView.getRoot());
+                this.iterateTree(file, this.treeView.getRoot());
             }
         }
     }
 
-    private void selectTreeItem(File file, TreeItem<File> root) {
+    private void iterateTree(File file, TreeItem<File> root) {
         for (TreeItem<File> child : root.getChildren()) {
-            if (child.getChildren().isEmpty()) {
+            if (child.getChildren().isEmpty() && file != null) {
                 if (child.getValue().getPath().equals(file.getPath())) {
                     this.treeView.getSelectionModel().select(child);
                     child.getParent().setExpanded(true);
                 }
-            } else selectTreeItem(file, child);
+            } else {
+                child.getChildren().setAll(child.getChildren().sorted(this::getTreeItemComparator));
+                this.iterateTree(file, child);
+            }
         }
     }
 
