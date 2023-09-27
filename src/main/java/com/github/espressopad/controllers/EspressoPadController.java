@@ -551,7 +551,7 @@ public class EspressoPadController implements Initializable {
         ProgressDialog progressDialog = new ProgressDialog(runTask);
         Task<Void> progressTask = new Task<Void>() {
             @Override
-            protected Void call() throws Exception {
+            protected Void call() {
                 progressDialog.setContentText("Running...");
                 progressDialog.setTitle("Running");
                 progressDialog.setHeaderText("Please wait");
