@@ -21,6 +21,7 @@ module com.github.espressopad {
     requires unbescape;
     requires com.jthemedetector;
     requires org.jsoup;
+    requires org.controlsfx.controls;
 
     opens com.github.espressopad;
     exports com.github.espressopad;

@@ -29,11 +29,11 @@ import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Bounds;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
@@ -51,6 +51,8 @@ import jdk.jshell.JShell;
 import jdk.jshell.JShellException;
 import jdk.jshell.SnippetEvent;
 import jdk.jshell.SourceCodeAnalysis;
+import org.controlsfx.control.PopOver;
+import org.controlsfx.dialog.ProgressDialog;
 import org.fxmisc.richtext.CodeArea;
 import org.fxmisc.richtext.NavigationActions;
 import org.fxmisc.richtext.model.TwoDimensional;
@@ -76,8 +78,6 @@ import java.util.stream.Collectors;
 
 public class EspressoPadController implements Initializable {
     @FXML
-    private MenuBar menuBar;
-    @FXML
     private VBox mainBox;
     @FXML
     private WebView output;
@@ -87,8 +87,6 @@ public class EspressoPadController implements Initializable {
     private SplitPane splitPane;
     @FXML
     private TreeView<File> treeView;
-    @FXML
-    private WebView documentationView;
     @FXML
     private VBox tabParent;
     @FXML
@@ -112,6 +110,7 @@ public class EspressoPadController implements Initializable {
     @FXML
     private Label cursorPosition;
 
+    private final WebView documentationView = new WebView();
     private final XmlHandler handler = new XmlHandler();
     private final ObservableList<TextEditor> editors = FXCollections.observableArrayList();
     private final List<TextEditorAutoComplete> autoCompleters = new ArrayList<>();
@@ -129,8 +128,13 @@ public class EspressoPadController implements Initializable {
     private Path homePath;
     private Stage stage;
     private Path dumpFile;
+    private final PopOver popOver = new PopOver(this.documentationView);
 
     public WebView getDocumentationView() {
+        Optional<Bounds> pos = this.getCurrentTextEditor().getCodeArea().getCaretBounds();
+        this.popOver.setPrefHeight(200d);
+        this.documentationView.setPrefHeight(200d);
+        this.popOver.show(this.stage, pos.get().getMaxX(), pos.get().getMaxY());
         return this.documentationView;
     }
 
@@ -323,9 +327,12 @@ public class EspressoPadController implements Initializable {
         return -1;
     }
 
+    private TwoDimensional.Position getCursorPosition(CodeArea codeArea) {
+        return codeArea.offsetToPosition(codeArea.getCaretPosition(), TwoDimensional.Bias.Forward);
+    }
+
     private void setCurrentPosition(CodeArea codeArea) {
-        TwoDimensional.Position caretPos = codeArea.offsetToPosition(codeArea.getCaretPosition(),
-                TwoDimensional.Bias.Forward);
+        TwoDimensional.Position caretPos = this.getCursorPosition(codeArea);
         cursorPosition.setText(String.format("Line %d, Col %d",
                 caretPos.getMajor() + 1, caretPos.getMinor() + 1));
     }
@@ -541,26 +548,29 @@ public class EspressoPadController implements Initializable {
                 return null;
             }
         };
-        runTask.setOnRunning(new EventHandler<WorkerStateEvent>() {
+        ProgressDialog progressDialog = new ProgressDialog(runTask);
+        Task<Void> progressTask = new Task<Void>() {
             @Override
-            public void handle(WorkerStateEvent event) {
-                StackPane stackPane = new StackPane();
-                stackPane.getChildren().addAll(splitPane, new ProgressIndicator());
-                mainBox.getChildren().setAll(menuBar, stackPane);
-                splitPane.setDisable(true);
-                splitPane.setOpacity(.5);
-            }
-        });
-        EventHandler<WorkerStateEvent> handler = new EventHandler<>() {
-            @Override
-            public void handle(WorkerStateEvent event) {
-                splitPane.setDisable(false);
-                mainBox.getChildren().setAll(menuBar, splitPane);
-                splitPane.setOpacity(1);
+            protected Void call() throws Exception {
+                progressDialog.setContentText("Running...");
+                progressDialog.setTitle("Running");
+                progressDialog.setHeaderText("Please wait");
+                EspressoPadMain.setThemeResource(progressDialog.getDialogPane().getScene());
+                progressDialog.setOnCloseRequest(new EventHandler<DialogEvent>() {
+                    @Override
+                    public void handle(DialogEvent event) {
+                        shell.stop();
+                    }
+                });
+                return null;
             }
         };
-        runTask.setOnSucceeded(handler);
-        runTask.setOnFailed(handler);
+        progressTask.setOnRunning(new EventHandler<WorkerStateEvent>() {
+            @Override
+            public void handle(WorkerStateEvent event) {
+                progressDialog.showAndWait();
+            }
+        });
 
         org.jsoup.nodes.Element output = document.getElementById("output");
         if (output != null && !output.html().isBlank())
@@ -568,6 +578,7 @@ public class EspressoPadController implements Initializable {
 
         this.output.getEngine().executeScript("document.getElementById('output').innerHTML = '';");
         new Thread(runTask).start();
+        new Thread(progressTask).start();
     }
 
     @FXML
@@ -894,8 +905,7 @@ public class EspressoPadController implements Initializable {
     @FXML
     private void goToLine(ActionEvent event) {
         CodeArea codeArea = this.getCurrentTextEditor().getCodeArea();
-        TwoDimensional.Position caretPos = codeArea.offsetToPosition(codeArea.getCaretPosition(),
-                TwoDimensional.Bias.Forward);
+        TwoDimensional.Position caretPos = this.getCursorPosition(codeArea);
         TextInputDialog dialog = new TextInputDialog(String.format("%d:%d", caretPos.getMajor() + 1,
                 caretPos.getMinor()));
         EspressoPadMain.setThemeResource(dialog.getDialogPane().getScene());
@@ -923,9 +933,7 @@ public class EspressoPadController implements Initializable {
 
     @FXML
     private void duplicateLine(ActionEvent event) {
-        TwoDimensional.Position caretPos = this.getCurrentTextEditor().getCodeArea()
-                .offsetToPosition(this.getCurrentTextEditor().getCodeArea().getCaretPosition(),
-                        TwoDimensional.Bias.Forward);
+        TwoDimensional.Position caretPos = this.getCursorPosition(this.getCurrentTextEditor().getCodeArea());
         String currentLine = this.getCurrentTextEditor().getCodeArea()
                 .getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
         this.getCurrentTextEditor().getCodeArea().insertText(caretPos.getMajor(), caretPos.getMinor(),
@@ -1092,8 +1100,7 @@ public class EspressoPadController implements Initializable {
 
     private void getSearchResults(List<Integer> indices) {
         CodeArea area = this.getCurrentTextEditor().getCodeArea();
-        TwoDimensional.Position caretPos = area.offsetToPosition(area.getCaretPosition(),
-                TwoDimensional.Bias.Forward);
+        TwoDimensional.Position caretPos = this.getCursorPosition(area);
         this.resetHighlighting();
 
         if (!indices.isEmpty()) {

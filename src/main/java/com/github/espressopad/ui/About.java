@@ -16,7 +16,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import javafx.stage.Window;
+import org.controlsfx.control.HyperlinkLabel;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.awt.Desktop;
@@ -31,8 +31,8 @@ import java.util.stream.Collectors;
 public class About extends Application {
     private final Stage stage;
 
-    public About(Window window) {
-        this.stage = (Stage) window;
+    public About(Stage stage) {
+        this.stage = stage;
     }
 
     @Override
@@ -64,7 +64,7 @@ public class About extends Application {
         productName.setFont(Font.font(Font.getDefault().getFamily(), FontWeight.EXTRA_BOLD, 36d));
         productName.setAlignment(Pos.CENTER);
 
-        Label details = new Label(String.format("v0.18.2\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
+        Label details = new Label(String.format("v0.19\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
                 System.getProperty("java.vm.vendor"), System.getProperty("java.vm.version"),
                 System.getProperty("os.arch"), System.getProperty("java.vm.name")));
         details.setAlignment(Pos.CENTER);
@@ -95,86 +95,113 @@ public class About extends Application {
         btnBox.setSpacing(10d);
 
         Label t = new Label(String.format("%s uses the following libraries:\n", this.stage.getTitle()));
-        Hyperlink ikonli = new Hyperlink("● Ikonli by Kordamp");
+        HyperlinkLabel ikonli = new HyperlinkLabel("● [Ikonli by Kordamp]");
         ikonli.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                try {
-                    Desktop.getDesktop().browse(new URL("https://github.com/kordamp/ikonli").toURI());
-                } catch (IOException | URISyntaxException e) {
-                    throw new RuntimeException(e);
+                if (event.getSource() instanceof Hyperlink) {
+                    try {
+                        Desktop.getDesktop().browse(new URL("https://github.com/kordamp/ikonli").toURI());
+                    } catch (IOException | URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         });
-        Hyperlink richtext = new Hyperlink("● RichtextFX by FXMisc");
+        HyperlinkLabel controlsfx = new HyperlinkLabel("● [ControlsFX]");
+        controlsfx.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                if (event.getSource() instanceof Hyperlink) {
+                    try {
+                        Desktop.getDesktop().browse(new URL("https://github.com/controlsfx/controlsfx").toURI());
+                    } catch (IOException | URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        });
+        HyperlinkLabel richtext = new HyperlinkLabel("● [RichtextFX by FXMisc]");
         richtext.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                try {
-                    Desktop.getDesktop().browse(new URL("https://github.com/FXMisc/RichTextFX").toURI());
-                } catch (IOException | URISyntaxException e) {
-                    throw new RuntimeException(e);
+                if (event.getSource() instanceof Hyperlink) {
+                    try {
+                        Desktop.getDesktop().browse(new URL("https://github.com/FXMisc/RichTextFX").toURI());
+                    } catch (IOException | URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         });
-        Hyperlink mavenArcheologist = new Hyperlink("● Maven Archeologist by Square");
+        HyperlinkLabel mavenArcheologist = new HyperlinkLabel("● [Maven Archeologist by Square]");
         mavenArcheologist.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                try {
-                    Desktop.getDesktop().browse(new URL("https://github.com/square/maven-archeologist").toURI());
-                } catch (IOException | URISyntaxException e) {
-                    throw new RuntimeException(e);
+                if (event.getSource() instanceof Hyperlink) {
+                    try {
+                        Desktop.getDesktop().browse(new URL("https://github.com/square/maven-archeologist").toURI());
+                    } catch (IOException | URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         });
-        Hyperlink jastyle = new Hyperlink("● jAstyle by AbrarSyed");
+        HyperlinkLabel jastyle = new HyperlinkLabel("● [jAstyle by AbrarSyed]");
         jastyle.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                try {
-                    Desktop.getDesktop().browse(new URL("https://github.com/AbrarSyed/jastyle").toURI());
-                } catch (IOException | URISyntaxException e) {
-                    throw new RuntimeException(e);
+                if (event.getSource() instanceof Hyperlink) {
+                    try {
+                        Desktop.getDesktop().browse(new URL("https://github.com/AbrarSyed/jastyle").toURI());
+                    } catch (IOException | URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         });
-        Hyperlink jsystemthemedetector = new Hyperlink("● jSystemThemeDetector by Dansoftowner");
+        HyperlinkLabel jsystemthemedetector = new HyperlinkLabel("● [jSystemThemeDetector by Dansoftowner]");
         jsystemthemedetector.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                try {
-                    Desktop.getDesktop()
-                            .browse(new URL("https://github.com/Dansoftowner/jSystemThemeDetector").toURI());
-                } catch (IOException | URISyntaxException e) {
-                    throw new RuntimeException(e);
+                if (event.getSource() instanceof Hyperlink) {
+                    try {
+                        Desktop.getDesktop()
+                                .browse(new URL("https://github.com/Dansoftowner/jSystemThemeDetector").toURI());
+                    } catch (IOException | URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         });
-        Hyperlink jsoup = new Hyperlink("● jsoup by jhy");
+        HyperlinkLabel jsoup = new HyperlinkLabel("● [jsoup by jhy]");
         jsoup.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                try {
-                    Desktop.getDesktop().browse(new URL("https://jsoup.org/").toURI());
-                } catch (IOException | URISyntaxException e) {
-                    throw new RuntimeException(e);
+                if (event.getSource() instanceof Hyperlink) {
+                    try {
+                        Desktop.getDesktop().browse(new URL("https://jsoup.org/").toURI());
+                    } catch (IOException | URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         });
-        Hyperlink unbescape = new Hyperlink("● unbescape");
+        HyperlinkLabel unbescape = new HyperlinkLabel("● [unbescape]");
         unbescape.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                try {
-                    Desktop.getDesktop().browse(new URL("https://www.unbescape.org/").toURI());
-                } catch (IOException | URISyntaxException e) {
-                    throw new RuntimeException(e);
+                if (event.getSource() instanceof Hyperlink) {
+                    try {
+                        Desktop.getDesktop().browse(new URL("https://www.unbescape.org/").toURI());
+                    } catch (IOException | URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         });
 
-        dependencyView.getChildren().addAll(t, ikonli, richtext, mavenArcheologist, jastyle,
+        dependencyView.getChildren().addAll(t, ikonli, controlsfx, richtext, mavenArcheologist, jastyle,
                 jsystemthemedetector, jsoup, unbescape);
         TextField filterProperty = new TextField();
         filterProperty.setPromptText("Filter properties");
