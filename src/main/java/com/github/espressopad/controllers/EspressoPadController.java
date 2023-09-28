@@ -31,6 +31,9 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Bounds;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextField;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -54,23 +57,22 @@ import jdk.jshell.SourceCodeAnalysis;
 import org.controlsfx.control.PopOver;
 import org.controlsfx.dialog.ProgressDialog;
 import org.fxmisc.richtext.CodeArea;
-import org.fxmisc.richtext.NavigationActions;
 import org.fxmisc.richtext.model.TwoDimensional;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.w3c.dom.Element;
 
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
-import java.awt.Desktop;
+import java.awt.*;
 import java.io.*;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -172,6 +174,10 @@ public class EspressoPadController implements Initializable {
 
     public Path getDumpFile() {
         return this.dumpFile;
+    }
+
+    public boolean isFindReplaceVisible() {
+        return this.findReplaceBox.isVisible() && this.toggleFindReplaceMenuItem.isSelected();
     }
 
     @Override
@@ -300,6 +306,7 @@ public class EspressoPadController implements Initializable {
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
                 if (findText.getText().isBlank())
                     resetHighlighting();
+                currentSelectionIndex = 0;
                 getSearchResults();
             }
         });
@@ -999,12 +1006,13 @@ public class EspressoPadController implements Initializable {
             if (!selection.isBlank())
                 this.findText.setText(selection);
             this.findText.requestFocus();
+            this.currentSelectionIndex = 0;
             this.getSearchResults();
         } else this.resetHighlighting();
     }
 
-    private List<Integer> indicesOf(String haystack, String needle,
-                                    boolean ignoreCase, boolean matchRegex, boolean matchWord) {
+    public List<Integer> indicesOf(String haystack, String needle,
+                                   boolean ignoreCase, boolean matchRegex, boolean matchWord) {
         List<Integer> matches = new ArrayList<>();
         if (needle == null || needle.isBlank()) return matches;
 
@@ -1092,8 +1100,7 @@ public class EspressoPadController implements Initializable {
         }
     }
 
-    private void getSearchResults() {
-        this.currentSelectionIndex = 0;
+    public void getSearchResults() {
         this.getSearchResults(this.indicesOf(this.getCurrentTextEditor().getCodeArea().getText(), this.findText.getText(),
                 !this.matchCase.isSelected(), this.matchRegex.isSelected(), this.matchWord.isSelected()));
     }
@@ -1108,7 +1115,7 @@ public class EspressoPadController implements Initializable {
             int len = this.findText.getText().length();
             for (int index : indices)
                 area.setStyle(index, index + len, Collections.singletonList("findMatch"));
-            area.moveTo(j, NavigationActions.SelectionPolicy.CLEAR);
+            //area.moveTo(j, NavigationActions.SelectionPolicy.CLEAR);
             area.selectRange(j, j + len);
             findResults.setText(String.format("Result %d of %d", currentSelectionIndex + 1, indices.size()));
         } else {
@@ -1117,7 +1124,7 @@ public class EspressoPadController implements Initializable {
         }
     }
 
-    private void resetHighlighting() {
+    public void resetHighlighting() {
         this.getCurrentTextEditor().applyHighlighting(TextEditor.computeHighlighting(
                 this.getCurrentTextEditor().getCodeArea().getText()));
     }

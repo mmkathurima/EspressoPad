@@ -48,6 +48,14 @@ public class TextEditor {
         return this.highlighter;
     }
 
+    public JShell getShell() {
+        return this.shell;
+    }
+
+    public void setShell(JShell shell) {
+        this.shell = shell;
+    }
+
     public TextEditor(Tab tab) {
         this.tab = tab;
         this.codeArea = new CustomCodeArea();
@@ -132,13 +140,5 @@ public class TextEditor {
 
     public void applyHighlighting(StyleSpans<Collection<String>> highlighting) {
         codeArea.setStyleSpans(0, highlighting);
-    }
-
-    public JShell getShell() {
-        return shell;
-    }
-
-    public void setShell(JShell shell) {
-        this.shell = shell;
     }
 }

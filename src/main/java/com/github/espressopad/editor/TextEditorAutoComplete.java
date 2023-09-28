@@ -27,9 +27,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -255,6 +253,10 @@ public class TextEditorAutoComplete {
                             showAutoCompletePopup();
                         //showDocumentationPopup();
                         break;
+                    case ESCAPE:
+                        if (autoCompletePopup != null && autoCompletePopup.isShowing())
+                            autoCompletePopup.hide();
+                        break;
                 }
             }
         });
@@ -316,6 +318,17 @@ public class TextEditorAutoComplete {
                 caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
                         TwoDimensional.Bias.Forward);
                 currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
+                String word = getWord(textEditor.getCodeArea().getText(caretPos.getMajor()), caretPos.getMinor());
+                controller.resetHighlighting();
+                if (controller.isFindReplaceVisible())
+                    controller.getSearchResults();
+                if (Arrays.stream(TextEditorConstants.KEYWORDS).noneMatch(word::equals)) {
+                    List<Integer> matches = controller.indicesOf(textEditor.getCodeArea().getText(), word,
+                            false, true, true);
+                    for (int match : matches)
+                        textEditor.getCodeArea().setStyle(match, match + word.length(),
+                                Collections.singletonList("matches"));
+                }
                 try {
                     if (!textEditor.getCodeArea().getText().isBlank() && (currentLine.charAt(currentLine.length() - 1) == '('
                             || currentLine.charAt(currentLine.length() - 1) == '.' ||
@@ -349,7 +362,7 @@ public class TextEditorAutoComplete {
             for (SnippetEvent snippetEvent : snippetEvents) {
                 switch (snippetEvent.snippet().kind()) {
                     case TYPE_DECL:
-                        //TODO
+                        //TODO 🤷‍
                         break;
                     case METHOD:
                         BodyDeclaration<?> body = StaticJavaParser.parseBodyDeclaration(snippetEvent.snippet().source());
@@ -413,5 +426,14 @@ public class TextEditorAutoComplete {
                 completion = shell.sourceCodeAnalysis().analyzeCompletion(completion.remaining());
             else break;
         }
+    }
+
+    private static String getWord(String s, int pos) {
+        Matcher nMatcher = Pattern.compile("^[a-zA-Z0-9-_]*").matcher(s.substring(pos));
+        Matcher pMatcher = Pattern.compile("[a-zA-Z0-9-_]*$").matcher(s.substring(0, pos));
+
+        if (pMatcher.find() && nMatcher.find())
+            return pMatcher.group() + nMatcher.group();
+        return "";
     }
 }

@@ -45,3 +45,7 @@
     -rtfx-background-color: lightsalmon;
     -fx-fill: black;
 }
+
+.matches {
+    -rtfx-background-color: lightsteelblue;
+}

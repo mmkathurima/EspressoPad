@@ -133,3 +133,7 @@
 .findMatch {
     -fx-fill: black !important;
 }
+
+.matches {
+    -rtfx-background-color: dimgray !important;
+}
