@@ -22,6 +22,7 @@ module com.github.espressopad {
     requires com.jthemedetector;
     requires org.jsoup;
     requires org.controlsfx.controls;
+    requires com.github.javaparser.core;
 
     opens com.github.espressopad;
     exports com.github.espressopad;

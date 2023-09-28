@@ -25,7 +25,7 @@ public class TextEditor {
     private final ExecutorService executor;
     private final Tab tab;
     private final BracketHighlighter highlighter;
-    protected JShell shell;
+    private JShell shell;
     private Subscription subscriber;
 
     public Subscription getSubscriber() {
@@ -132,5 +132,13 @@ public class TextEditor {
 
     public void applyHighlighting(StyleSpans<Collection<String>> highlighting) {
         codeArea.setStyleSpans(0, highlighting);
+    }
+
+    public JShell getShell() {
+        return shell;
+    }
+
+    public void setShell(JShell shell) {
+        this.shell = shell;
     }
 }

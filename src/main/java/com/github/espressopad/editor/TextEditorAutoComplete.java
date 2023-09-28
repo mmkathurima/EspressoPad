@@ -3,6 +3,9 @@ package com.github.espressopad.editor;
 import com.github.espressopad.controllers.EspressoPadController;
 import com.github.espressopad.xml.HtmlHandler;
 import com.github.espressopad.xml.XmlHandler;
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.body.BodyDeclaration;
+import com.github.javaparser.ast.stmt.*;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
@@ -62,7 +65,7 @@ public class TextEditorAutoComplete {
     }
 
     public JShell getShell() {
-        return this.textEditor.shell;
+        return this.textEditor.getShell();
     }
 
     public Popup getAutoCompletePopup() {
@@ -106,7 +109,7 @@ public class TextEditorAutoComplete {
 
     private void showAutoCompletePopup() {
         Bounds textBounds;
-        this.keyphrases = this.textEditor.shell
+        this.keyphrases = this.textEditor.getShell()
                 .sourceCodeAnalysis()
                 .completionSuggestions(currentLine, currentLine.length(), new int[1])
                 .stream()
@@ -129,8 +132,9 @@ public class TextEditorAutoComplete {
     }
 
     private void showDocumentation() {
-        try (JShell docShell = JShell.create()) {
+        try (JShell docShell = JShell.builder().out(null).err(null).in(null).build()) {
             this.addArtifactsAndImports(docShell);
+            this.addSnippets(docShell);
             this.getShell().imports().map(Snippet::source).forEach(docShell::eval);
             this.caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
                     TwoDimensional.Bias.Forward);
@@ -176,11 +180,13 @@ public class TextEditorAutoComplete {
             }
         });
 
-        this.textEditor.shell = JShell.create();
-        this.addArtifactsAndImports(this.textEditor.shell);
+        this.textEditor.setShell(JShell.builder().out(null).err(null).in(null).build());
+        this.addArtifactsAndImports(this.textEditor.getShell());
         this.textEditor.getCodeArea().textProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+                //getShell().snippets().forEach(getShell()::drop);
+                addSnippets(getShell());
                 caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
                         TwoDimensional.Bias.Forward);
                 currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
@@ -210,11 +216,7 @@ public class TextEditorAutoComplete {
                     throw new RuntimeException(e);
                 }
 
-                if (!currentLine.isBlank() && (currentLine.charAt(currentLine.length() - 1) == '('
-                        || currentLine.charAt(currentLine.length() - 1) == '.' ||
-                        currentLine.charAt(currentLine.length() - 1) == ' ')) {
-                    showDocumentation();
-                } else if (caretPos.getMinor() > 0 && !currentLine.isBlank() &&
+                if (caretPos.getMinor() > 0 && !currentLine.isBlank() &&
                         currentLine.charAt(currentLine.length() - 1) != '{' &&
                         currentLine.charAt(currentLine.length() - 1) != '}') {
                     showAutoCompletePopup();
@@ -233,7 +235,7 @@ public class TextEditorAutoComplete {
                         if (caretPos.getMinor() == 0) {
                             String prevLine = textEditor.getCodeArea().getText(
                                     caretPos.getMajor() - ((caretPos.getMajor() > 0) ? 1 : 0));
-                            SourceCodeAnalysis.CompletionInfo completionInfo = textEditor.shell
+                            SourceCodeAnalysis.CompletionInfo completionInfo = textEditor.getShell()
                                     .sourceCodeAnalysis()
                                     .analyzeCompletion(prevLine);
                             switch (completionInfo.completeness()) {
@@ -243,7 +245,7 @@ public class TextEditorAutoComplete {
                                     return;
                                 case COMPLETE_WITH_SEMI:
                                 case COMPLETE:
-                                    snippetEvents = textEditor.shell.eval(prevLine);
+                                    snippetEvents = textEditor.getShell().eval(prevLine);
                                     break;
                             }
                         }
@@ -298,21 +300,29 @@ public class TextEditorAutoComplete {
             public void handle(MouseEvent event) {
                 if (autoCompletePopup != null && autoCompletePopup.isShowing())
                     autoCompletePopup.hide();
-                if (event.getTarget() instanceof Text) {
+                /*if (event.getTarget() instanceof Text) {
                     try {
                         int line = Integer.parseInt(((Text) event.getTarget()).getText().trim()) - 1;
                         textEditor.getCodeArea().selectRange(line, 0, line,
                                 textEditor.getCodeArea().getParagraph(line).getText().length());
                     } catch (NumberFormatException e) {
                     }
-                }
+                }*/
             }
         });
-        this.textEditor.getCodeArea().addEventHandler(MouseEvent.MOUSE_RELEASED, new EventHandler<MouseEvent>() {
+        this.textEditor.getCodeArea().caretPositionProperty().addListener(new ChangeListener<Integer>() {
             @Override
-            public void handle(MouseEvent event) {
-                if (!textEditor.getCodeArea().getText().isBlank())
-                    showDocumentation();
+            public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
+                caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
+                        TwoDimensional.Bias.Forward);
+                currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
+                try {
+                    if (!textEditor.getCodeArea().getText().isBlank() && (currentLine.charAt(currentLine.length() - 1) == '('
+                            || currentLine.charAt(currentLine.length() - 1) == '.' ||
+                            currentLine.charAt(currentLine.length() - 1) == ' '))
+                        showDocumentation();
+                } catch (IndexOutOfBoundsException e) {
+                }
             }
         });
     }
@@ -330,5 +340,78 @@ public class TextEditorAutoComplete {
                     .map(imports -> String.format("import %s;", imports))
                     .collect(Collectors.joining()));
     }
-}
 
+    private void addSnippets(JShell shell) {
+        SourceCodeAnalysis.CompletionInfo completion = shell.sourceCodeAnalysis()
+                .analyzeCompletion(textEditor.getCodeArea().getText());
+        while (!completion.source().isBlank()) {
+            List<SnippetEvent> snippetEvents = shell.eval(completion.source());
+            for (SnippetEvent snippetEvent : snippetEvents) {
+                switch (snippetEvent.snippet().kind()) {
+                    case TYPE_DECL:
+                        //TODO
+                        break;
+                    case METHOD:
+                        BodyDeclaration<?> body = StaticJavaParser.parseBodyDeclaration(snippetEvent.snippet().source());
+                        body.asMethodDeclaration().getBody().ifPresent(x -> {
+                            for (Statement st : x.getStatements())
+                                shell.eval(st.toString());
+                        });
+                        break;
+                    case STATEMENT:
+                        Statement stmts = StaticJavaParser.parseStatement(snippetEvent.snippet().source());
+                        if (stmts.isDoStmt()) {
+                            DoStmt doStmt = stmts.asDoStmt();
+                            for (Statement st : doStmt.getBody().asBlockStmt().getStatements())
+                                shell.eval(st.toString());
+                        } else if (stmts.isForEachStmt()) {
+                            ForEachStmt forEachStmt = stmts.asForEachStmt();
+                            for (Statement st : forEachStmt.getBody().asBlockStmt().getStatements())
+                                shell.eval(st.toString());
+                        } else if (stmts.isForStmt()) {
+                            ForStmt forStmt = stmts.asForStmt();
+                            for (Statement st : forStmt.getBody().asBlockStmt().getStatements())
+                                shell.eval(st.toString());
+                        } else if (stmts.isForStmt()) {
+                            ForStmt forStmt = stmts.asForStmt();
+                            for (Statement st : forStmt.getBody().asBlockStmt().getStatements())
+                                shell.eval(st.toString());
+                        } else if (stmts.isIfStmt()) {
+                            IfStmt ifStmt = stmts.asIfStmt();
+                            for (Statement st : ifStmt.getThenStmt().asBlockStmt().getStatements())
+                                shell.eval(st.toString());
+                        } else if (stmts.isSwitchStmt()) {
+                            SwitchStmt switchStmt = stmts.asSwitchStmt();
+                            for (SwitchEntry switchEntry : switchStmt.getEntries())
+                                for (Statement st : switchEntry.getStatements())
+                                    shell.eval(st.toString());
+                        } else if (stmts.isSynchronizedStmt()) {
+                            SynchronizedStmt syncStmt = stmts.asSynchronizedStmt();
+                            for (Statement st : syncStmt.getBody().asBlockStmt().getStatements())
+                                shell.eval(st.toString());
+                        } else if (stmts.isTryStmt()) {
+                            TryStmt tryStmt = stmts.asTryStmt();
+                            for (Statement st : tryStmt.getTryBlock().asBlockStmt().getStatements())
+                                shell.eval(st.toString());
+                            for (CatchClause catchClause : tryStmt.getCatchClauses()) {
+                                for (Statement st : catchClause.getBody().getStatements())
+                                    shell.eval(st.toString());
+                            }
+                            tryStmt.getFinallyBlock().ifPresent(x -> {
+                                for (Statement st : x.getStatements())
+                                    shell.eval(st.toString());
+                            });
+                        } else if (stmts.isWhileStmt()) {
+                            WhileStmt whileStmt = stmts.asWhileStmt();
+                            for (Statement st : whileStmt.getBody().asBlockStmt().getStatements())
+                                shell.eval(st.toString());
+                        }
+                        break;
+                }
+            }
+            if (!completion.remaining().isBlank())
+                completion = shell.sourceCodeAnalysis().analyzeCompletion(completion.remaining());
+            else break;
+        }
+    }
+}
