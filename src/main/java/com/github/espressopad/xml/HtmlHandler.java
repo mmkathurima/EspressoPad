@@ -105,7 +105,6 @@ public class HtmlHandler {
         input = matcher.replaceAll("\n\t\t<div><b>Version:</b> $1</div>");
 
         return String.format("%s\n\t\t<style>body { font-family: sans-serif; font-size: 11pt; } " +
-                "code { margin-right: 1em; }" +
                 " .red { color: indianred; } </style>", input);
     }
 }

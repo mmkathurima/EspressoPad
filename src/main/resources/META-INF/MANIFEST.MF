@@ -1,20 +1,24 @@
 Manifest-Version: 1.0
 Main-Class: com.github.espressopad.Main
-Class-Path: flowless-0.7.0.jar javafx-graphics-17.0.2.jar richtextfx-0.1
- 1.0.jar maven-model-3.6.3.jar javafx-graphics-17.0.2-win.jar maven-arch
- eologist-0.0.3.1.jar unbescape-1.1.6.RELEASE.jar reactfx-2.0-M5.jar oki
- o-2.4.3.jar jfa-1.2.0.jar undofx-2.1.1.jar jna-platform-5.10.0.jar vers
- ioncompare-1.4.1.jar javafx-controls-17.0.2-win.jar javafx-base-17.0.2-
- win.jar kotlin-stdlib-1.3.61.jar javafx-swing-17.0.2.jar slf4j-api-1.7.
- 32.jar jna-5.10.0.jar annotations-22.0.0.jar javafx-web-17.0.2-win.jar 
- maven-artifact-3.6.3.jar jAstyle-1.3.jar wellbehavedfx-0.3.3.jar javafx
- -controls-17.0.2.jar plexus-utils-3.2.1.jar okhttp-4.4.1.jar javafx-web
- -17.0.2.jar commons-lang3-3.8.1.jar org.eclipse.sisu.inject-0.3.4.jar j
- SystemThemeDetector-3.8.jar ikonli-core-12.3.1.jar maven-builder-suppor
- t-3.6.3.jar javafx-fxml-17.0.2.jar javafx-swing-17.0.2-win.jar kotlin-s
- tdlib-common-1.3.61.jar javafx-media-17.0.2.jar oshi-core-5.8.6.jar jav
- afx-fxml-17.0.2-win.jar javafx-base-17.0.2.jar javafx-media-17.0.2-win.
- jar plexus-interpolation-1.25.jar javax.inject-1.jar controlsfx-11.1.2.
- jar ikonli-javafx-12.3.1.jar ikonli-fontawesome5-pack-12.3.1.jar maven-
- model-builder-3.6.3.jar jsoup-1.15.3.jar
+Class-Path: wellbehavedfx-0.3.3.jar javafx-base-17.0.2-win.jar commons-l
+ ang3-3.8.1.jar javafx-controls-17.0.2.jar maven-model-builder-3.6.3.jar
+  j2objc-annotations-1.3.jar reactfx-2.0-M5.jar annotations-22.0.0.jar j
+ avafx-controls-17.0.2-win.jar jna-platform-5.10.0.jar javafx-graphics-1
+ 7.0.2.jar javafx-fxml-17.0.2.jar javaparser-core-3.25.1.jar javassist-3
+ .29.2-GA.jar javafx-fxml-17.0.2-win.jar maven-archeologist-0.0.3.1.jar 
+ ikonli-core-12.3.1.jar guava-31.1-jre.jar jsr305-3.0.2.jar error_prone_
+ annotations-2.11.0.jar jfa-1.2.0.jar flowless-0.7.0.jar kotlin-stdlib-1
+ .3.61.jar slf4j-api-1.7.32.jar maven-builder-support-3.6.3.jar javafx-m
+ edia-17.0.2.jar kotlin-stdlib-common-1.3.61.jar javaparser-symbol-solve
+ r-core-3.25.1.jar javax.inject-1.jar controlsfx-11.1.2.jar ikonli-javaf
+ x-12.3.1.jar org.eclipse.sisu.inject-0.3.4.jar oshi-core-5.8.6.jar list
+ enablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar maven-model-
+ 3.6.3.jar plexus-utils-3.2.1.jar unbescape-1.1.6.RELEASE.jar jsoup-1.15
+ .3.jar javafx-web-17.0.2.jar jna-5.10.0.jar plexus-interpolation-1.25.j
+ ar javafx-swing-17.0.2-win.jar ikonli-fontawesome5-pack-12.3.1.jar java
+ fx-swing-17.0.2.jar jAstyle-1.3.jar richtextfx-0.11.0.jar javafx-web-17
+ .0.2-win.jar javafx-media-17.0.2-win.jar checker-qual-3.12.0.jar okio-2
+ .4.3.jar okhttp-4.4.1.jar versioncompare-1.4.1.jar javafx-graphics-17.0
+ .2-win.jar failureaccess-1.0.1.jar jSystemThemeDetector-3.8.jar javafx-
+ base-17.0.2.jar maven-artifact-3.6.3.jar undofx-2.1.1.jar
 

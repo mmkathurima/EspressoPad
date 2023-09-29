@@ -575,7 +575,8 @@ public class EspressoPadController implements Initializable {
         progressTask.setOnRunning(new EventHandler<WorkerStateEvent>() {
             @Override
             public void handle(WorkerStateEvent event) {
-                progressDialog.showAndWait();
+                if (!progressDialog.isShowing())
+                    progressDialog.showAndWait();
             }
         });
 
@@ -638,13 +639,23 @@ public class EspressoPadController implements Initializable {
                         if (!Files.exists(path)) {
                             if (file.renameTo(path.toFile())) {
                                 refreshFileTree();
-                                getCurrentTextEditor().getTab().setText(String.valueOf(path.getFileName()));
+                                savedOpenFiles.entrySet()
+                                        .stream()
+                                        .filter(y -> y.getValue().getPath().equals(path.toString()))
+                                        .findFirst()
+                                        .ifPresent(y -> y.getKey().getTab().setText(String.valueOf(path.getFileName())));
+                                file.delete();
                             } else {
                                 Alert alert = new Alert(Alert.AlertType.ERROR,
                                         String.format("Renaming '%s' failed.", fileName));
                                 EspressoPadMain.setThemeResource(alert.getDialogPane().getScene());
                                 alert.showAndWait();
                             }
+                        } else {
+                            Alert alert = new Alert(Alert.AlertType.ERROR,
+                                    String.format("Renaming '%s' failed. File exists.", fileName));
+                            EspressoPadMain.setThemeResource(alert.getDialogPane().getScene());
+                            alert.showAndWait();
                         }
                     });
                 }
@@ -664,14 +675,20 @@ public class EspressoPadController implements Initializable {
                     alert.showAndWait()
                             .filter(x -> x == ButtonType.OK)
                             .ifPresent(x -> {
-                                if (file.delete())
-                                    refreshFileTree();
-                                else {
-                                    Alert dialog = new Alert(Alert.AlertType.ERROR, String.format("Deleting '%s' failed.",
-                                            file.getName()));
-                                    EspressoPadMain.setThemeResource(dialog.getDialogPane().getScene());
-                                    dialog.showAndWait();
+                                for (Map.Entry<TextEditor, File> textEditorFileEntry : savedOpenFiles.entrySet()) {
+                                    if (textEditorFileEntry.getValue().getPath().equals(file.getPath())) {
+                                        Tab tabToClose = textEditorFileEntry.getKey().getTab();
+                                        Event.fireEvent(tabToClose,
+                                                new Event(tabToClose, tabToClose, Tab.TAB_CLOSE_REQUEST_EVENT));
+                                        Event.fireEvent(tabToClose,
+                                                new Event(tabToClose, tabToClose, Tab.CLOSED_EVENT));
+                                        tabPane.getTabs().remove(tabToClose);
+                                        savedOpenFiles.remove(textEditorFileEntry.getKey());
+                                        break;
+                                    }
                                 }
+                                file.delete();
+                                refreshFileTree();
                             });
                 }
             }

@@ -6,6 +6,7 @@ import com.github.espressopad.xml.XmlHandler;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.stmt.*;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
@@ -28,6 +29,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -183,44 +186,64 @@ public class TextEditorAutoComplete {
         this.textEditor.getCodeArea().textProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                //getShell().snippets().forEach(getShell()::drop);
-                addSnippets(getShell());
-                caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
-                        TwoDimensional.Bias.Forward);
-                currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
-                Path shelfDir = controller.getHomePath().resolve("shelf");
-
-                if (!Objects.equals(newValue, oldValue) && !controller.getSavedOpenFiles().containsKey(textEditor))
-                    textEditor.getTab().setText(String.format("*%s", textEditor.getTab().getText()
-                            .replaceFirst("^\\*", "")));
-
                 try {
-                    if (!controller.getSavedOpenFiles().containsKey(textEditor) && shelvedFileName == null
-                            && savedFile == null) {
-                        if (!shelfDir.toFile().exists())
-                            Files.createDirectory(shelfDir);
-                        shelvedFileName = UUID.randomUUID().toString();
-                        Files.writeString(shelfDir.resolve(shelvedFileName), textEditor.getCodeArea().getText(),
-                                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                    } else if (shelvedFileName != null && !shelvedFileName.isBlank())
-                        Files.writeString(shelfDir.resolve(shelvedFileName), textEditor.getCodeArea().getText(),
-                                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                    else if (controller.getSavedOpenFiles().containsKey(textEditor))
-                        Files.writeString(controller.getSavedOpenFiles().get(textEditor).toPath(),
-                                textEditor.getCodeArea().getText(),
-                                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                    savedFile = null;
-                } catch (IOException e) {
+                    Executors.newFixedThreadPool(10).submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            Platform.runLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    //getShell().snippets().forEach(getShell()::drop);
+                                    addSnippets(getShell());
+                                    caretPos = textEditor.getCodeArea()
+                                            .offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
+                                            TwoDimensional.Bias.Forward);
+                                    currentLine = textEditor.getCodeArea()
+                                            .getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
+                                    Path shelfDir = controller.getHomePath().resolve("shelf");
+
+                                    if (!Objects.equals(newValue, oldValue) &&
+                                            !controller.getSavedOpenFiles().containsKey(textEditor))
+                                        textEditor.getTab().setText(String.format("*%s", textEditor.getTab().getText()
+                                                .replaceFirst("^\\*", "")));
+
+                                    try {
+                                        if (!controller.getSavedOpenFiles().containsKey(textEditor)
+                                                && shelvedFileName == null && savedFile == null) {
+                                            if (!shelfDir.toFile().exists())
+                                                Files.createDirectory(shelfDir);
+                                            shelvedFileName = UUID.randomUUID().toString();
+                                            Files.writeString(shelfDir.resolve(shelvedFileName),
+                                                    textEditor.getCodeArea().getText(),
+                                                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                                        } else if (shelvedFileName != null && !shelvedFileName.isBlank())
+                                            Files.writeString(shelfDir.resolve(shelvedFileName),
+                                                    textEditor.getCodeArea().getText(),
+                                                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                                        else if (controller.getSavedOpenFiles().containsKey(textEditor))
+                                            Files.writeString(controller.getSavedOpenFiles().get(textEditor).toPath(),
+                                                    textEditor.getCodeArea().getText(),
+                                                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                                        savedFile = null;
+                                    } catch (IOException e) {
+                                        throw new RuntimeException(e);
+                                    }
+
+                                    if (caretPos.getMinor() > 0 && !currentLine.isBlank() &&
+                                            currentLine.charAt(currentLine.length() - 1) != '{' &&
+                                            currentLine.charAt(currentLine.length() - 1) != '}') {
+                                        showAutoCompletePopup();
+                                        //showDocumentation();
+                                    } else if (autoCompletePopup != null)
+                                        autoCompletePopup.hide();
+                                }
+                            });
+
+                        }
+                    }).get();
+                } catch (InterruptedException | ExecutionException e) {
                     throw new RuntimeException(e);
                 }
-
-                if (caretPos.getMinor() > 0 && !currentLine.isBlank() &&
-                        currentLine.charAt(currentLine.length() - 1) != '{' &&
-                        currentLine.charAt(currentLine.length() - 1) != '}') {
-                    showAutoCompletePopup();
-                    //showDocumentation();
-                } else if (autoCompletePopup != null)
-                    autoCompletePopup.hide();
             }
         });
         this.textEditor.getCodeArea().addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
@@ -263,37 +286,54 @@ public class TextEditorAutoComplete {
         this.textEditor.getCodeArea().addEventHandler(KeyEvent.KEY_RELEASED, new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent event) {
-                if (Stream.of(KeyCode.SHIFT, KeyCode.ALT, KeyCode.SHORTCUT, KeyCode.CONTROL, KeyCode.TAB, KeyCode.CAPS,
-                                KeyCode.BACK_SPACE, KeyCode.DELETE, KeyCode.ENTER, KeyCode.META)
-                        .noneMatch(x -> event.getCode().equals(x)) && !event.getCode().isArrowKey() &&
-                        !event.isShortcutDown() && !event.isAltDown() && !event.isMetaDown()) {
-                    int cursorPosition = textEditor.getCodeArea().getCaretPosition();
-                    if (cursorPosition > 0) {
-                        char bracket = textEditor.getCodeArea().getText(cursorPosition - 1, cursorPosition).charAt(0);
-                        //PunctuationComplete.onPunctuationComplete(codeTextArea, bracket, cursorPosition);
-                        switch (bracket) {
-                            case '{':
-                                textEditor.getCodeArea().insertText(cursorPosition, "}");
-                                textEditor.getCodeArea().moveTo(cursorPosition);
-                                break;
-                            case '[':
-                                textEditor.getCodeArea().insertText(cursorPosition, "]");
-                                textEditor.getCodeArea().moveTo(cursorPosition);
-                                break;
-                            case '(':
-                                textEditor.getCodeArea().insertText(cursorPosition, ")");
-                                textEditor.getCodeArea().moveTo(cursorPosition);
-                                break;
-                            case '\'':
-                                textEditor.getCodeArea().insertText(cursorPosition, "'");
-                                textEditor.getCodeArea().moveTo(cursorPosition);
-                                break;
-                            case '\"':
-                                textEditor.getCodeArea().insertText(cursorPosition, "\"");
-                                textEditor.getCodeArea().moveTo(cursorPosition);
-                                break;
+                try {
+                    Executors.newFixedThreadPool(10).submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            Platform.runLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (Stream.of(KeyCode.SHIFT, KeyCode.ALT, KeyCode.SHORTCUT, KeyCode.CONTROL,
+                                                    KeyCode.TAB, KeyCode.CAPS, KeyCode.BACK_SPACE, KeyCode.DELETE,
+                                                    KeyCode.ENTER, KeyCode.META)
+                                            .noneMatch(x -> event.getCode().equals(x)) && !event.getCode().isArrowKey() &&
+                                            !event.isShortcutDown() && !event.isAltDown() && !event.isMetaDown()) {
+                                        int cursorPosition = textEditor.getCodeArea().getCaretPosition();
+                                        if (cursorPosition > 0) {
+                                            char bracket = textEditor.getCodeArea()
+                                                    .getText(cursorPosition - 1, cursorPosition)
+                                                    .charAt(0);
+                                            //PunctuationComplete.onPunctuationComplete(codeTextArea, bracket, cursorPosition);
+                                            switch (bracket) {
+                                                case '{':
+                                                    textEditor.getCodeArea().insertText(cursorPosition, "}");
+                                                    textEditor.getCodeArea().moveTo(cursorPosition);
+                                                    break;
+                                                case '[':
+                                                    textEditor.getCodeArea().insertText(cursorPosition, "]");
+                                                    textEditor.getCodeArea().moveTo(cursorPosition);
+                                                    break;
+                                                case '(':
+                                                    textEditor.getCodeArea().insertText(cursorPosition, ")");
+                                                    textEditor.getCodeArea().moveTo(cursorPosition);
+                                                    break;
+                                                case '\'':
+                                                    textEditor.getCodeArea().insertText(cursorPosition, "'");
+                                                    textEditor.getCodeArea().moveTo(cursorPosition);
+                                                    break;
+                                                case '\"':
+                                                    textEditor.getCodeArea().insertText(cursorPosition, "\"");
+                                                    textEditor.getCodeArea().moveTo(cursorPosition);
+                                                    break;
+                                            }
+                                        }
+                                    }
+                                }
+                            });
                         }
-                    }
+                    }).get();
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
                 }
             }
         });
@@ -302,39 +342,50 @@ public class TextEditorAutoComplete {
             public void handle(MouseEvent event) {
                 if (autoCompletePopup != null && autoCompletePopup.isShowing())
                     autoCompletePopup.hide();
-                /*if (event.getTarget() instanceof Text) {
-                    try {
-                        int line = Integer.parseInt(((Text) event.getTarget()).getText().trim()) - 1;
-                        textEditor.getCodeArea().selectRange(line, 0, line,
-                                textEditor.getCodeArea().getParagraph(line).getText().length());
-                    } catch (NumberFormatException e) {
-                    }
-                }*/
             }
         });
         this.textEditor.getCodeArea().caretPositionProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
-                caretPos = textEditor.getCodeArea().offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
-                        TwoDimensional.Bias.Forward);
-                currentLine = textEditor.getCodeArea().getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
-                String word = getWord(textEditor.getCodeArea().getText(caretPos.getMajor()), caretPos.getMinor());
-                controller.resetHighlighting();
-                if (controller.isFindReplaceVisible())
-                    controller.getSearchResults();
-                if (Arrays.stream(TextEditorConstants.KEYWORDS).noneMatch(word::equals)) {
-                    List<Integer> matches = controller.indicesOf(textEditor.getCodeArea().getText(), word,
-                            false, true, true);
-                    for (int match : matches)
-                        textEditor.getCodeArea().setStyle(match, match + word.length(),
-                                Collections.singletonList("matches"));
-                }
                 try {
-                    if (!textEditor.getCodeArea().getText().isBlank() && (currentLine.charAt(currentLine.length() - 1) == '('
-                            || currentLine.charAt(currentLine.length() - 1) == '.' ||
-                            currentLine.charAt(currentLine.length() - 1) == ' '))
-                        showDocumentation();
-                } catch (IndexOutOfBoundsException e) {
+                    Executors.newFixedThreadPool(10).submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            Platform.runLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    caretPos = textEditor.getCodeArea()
+                                            .offsetToPosition(textEditor.getCodeArea().getCaretPosition(),
+                                                    TwoDimensional.Bias.Forward);
+                                    currentLine = textEditor.getCodeArea()
+                                            .getText(caretPos.getMajor())
+                                            .substring(0, caretPos.getMinor());
+                                    String word = getWord(textEditor.getCodeArea().getText(caretPos.getMajor()),
+                                            caretPos.getMinor());
+                                    if (controller.isFindReplaceVisible())
+                                        controller.getSearchResults();
+                                    if (Arrays.stream(TextEditorConstants.KEYWORDS).noneMatch(word::equals)) {
+                                        List<Integer> matches = controller.indicesOf(textEditor.getCodeArea().getText(),
+                                                word, false, true, true);
+                                        for (int match : matches)
+                                            textEditor.getCodeArea().setStyle(match, match + word.length(),
+                                                    Collections.singletonList("matches"));
+                                    }
+                                    try {
+                                        if (!textEditor.getCodeArea().getText().isBlank() &&
+                                                (currentLine.charAt(currentLine.length() - 1) == '('
+                                                || currentLine.charAt(currentLine.length() - 1) == '.' ||
+                                                currentLine.charAt(currentLine.length() - 1) == ' '))
+                                            showDocumentation();
+                                    } catch (IndexOutOfBoundsException e) {
+                                    }
+                                }
+                            });
+                        }
+                    }).get();
+                    controller.resetHighlighting();
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
                 }
             }
         });
@@ -357,7 +408,7 @@ public class TextEditorAutoComplete {
     private void addSnippets(JShell shell) {
         SourceCodeAnalysis.CompletionInfo completion = shell.sourceCodeAnalysis()
                 .analyzeCompletion(textEditor.getCodeArea().getText());
-        while (!completion.source().isBlank()) {
+        while (completion.source() != null && !completion.source().isBlank()) {
             List<SnippetEvent> snippetEvents = shell.eval(completion.source());
             for (SnippetEvent snippetEvent : snippetEvents) {
                 switch (snippetEvent.snippet().kind()) {
