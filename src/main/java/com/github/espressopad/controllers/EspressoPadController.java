@@ -31,9 +31,6 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Bounds;
 import javafx.geometry.Rectangle2D;
-import javafx.scene.control.Label;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.TextField;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -63,16 +60,16 @@ import org.jsoup.nodes.Document;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.w3c.dom.Element;
 
-import javax.swing.*;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.filechooser.FileSystemView;
-import java.awt.*;
+import java.awt.Desktop;
 import java.io.*;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -117,6 +114,7 @@ public class EspressoPadController implements Initializable {
     private final ObservableList<TextEditor> editors = FXCollections.observableArrayList();
     private final List<TextEditorAutoComplete> autoCompleters = new ArrayList<>();
     private final Map<TextEditor, File> savedOpenFiles = new LinkedHashMap<>();
+    private final Map<TextEditor, File> unsavedOpenFiles = new LinkedHashMap<>();
     private ConsoleOutputStream out;
     private ConsoleErrorStream err;
     private PrintStream outStream, errStream;
@@ -196,22 +194,14 @@ public class EspressoPadController implements Initializable {
         TextEditorAutoComplete tac = new TextEditorAutoComplete(editor, this);
         this.autoCompleters.add(tac);
         this.editors.add(editor);
+        this.setBracketListener(editor);
         this.editors.addListener(new ListChangeListener<TextEditor>() {
             @Override
             public void onChanged(Change<? extends TextEditor> c) {
                 while (c.next()) {
                     if (c.wasAdded()) {
-                        for (TextEditor textEditor : c.getAddedSubList()) {
-                            CodeArea codeArea = textEditor.getCodeArea();
-                            codeArea.caretPositionProperty().addListener(new ChangeListener<Integer>() {
-                                @Override
-                                public void changed(ObservableValue<? extends Integer> observable, Integer oldValue,
-                                                    Integer newValue) {
-                                    textEditor.getHighlighter().highlightBracket(newValue);
-                                    setCurrentPosition(codeArea);
-                                }
-                            });
-                        }
+                        for (TextEditor textEditor : c.getAddedSubList())
+                            setBracketListener(textEditor);
                     }
                 }
             }
@@ -271,6 +261,7 @@ public class EspressoPadController implements Initializable {
                     this.autoCompleters.add(autoComplete);
                     this.editors.add(textEditor);
                     this.setTabEvents(textEditor, autoComplete);
+                    this.unsavedOpenFiles.put(textEditor, shelfFile);
                 }
             }
         } catch (IOException e) {
@@ -322,6 +313,17 @@ public class EspressoPadController implements Initializable {
                  UnsupportedLookAndFeelException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void setBracketListener(TextEditor editor) {
+        editor.getCodeArea().caretPositionProperty().addListener(new ChangeListener<Integer>() {
+            @Override
+            public void changed(ObservableValue<? extends Integer> observable, Integer oldValue,
+                                Integer newValue) {
+                editor.getHighlighter().highlightBracket(newValue);
+                setCurrentPosition(editor.getCodeArea());
+            }
+        });
     }
 
     private int getTreeItemComparator(TreeItem<File> o1, TreeItem<File> o2) {
@@ -894,6 +896,7 @@ public class EspressoPadController implements Initializable {
     @FXML
     private void exit(ActionEvent event) {
         Platform.exit();
+        System.exit(0);
     }
 
     @FXML
@@ -1031,7 +1034,8 @@ public class EspressoPadController implements Initializable {
     public List<Integer> indicesOf(String haystack, String needle,
                                    boolean ignoreCase, boolean matchRegex, boolean matchWord) {
         List<Integer> matches = new ArrayList<>();
-        if (needle == null || needle.isBlank()) return matches;
+        if (needle == null || needle.isBlank())
+            return matches;
 
         int index = haystack.indexOf(needle);
 
@@ -1144,5 +1148,27 @@ public class EspressoPadController implements Initializable {
     public void resetHighlighting() {
         this.getCurrentTextEditor().applyHighlighting(TextEditor.computeHighlighting(
                 this.getCurrentTextEditor().getCodeArea().getText()));
+    }
+
+    @FXML
+    private void clearAllShelved(ActionEvent event) {
+        File shelfPath = this.getHomePath().resolve("shelf").toFile();
+        File[] shelf = shelfPath.listFiles();
+        if (shelf != null && shelfPath.exists() && shelfPath.isDirectory() && shelf.length > 0) {
+            for (File file : shelf) {
+                for (Map.Entry<TextEditor, File> x : this.unsavedOpenFiles.entrySet()) {
+                    if (x.getValue().getPath().equals(file.getPath())) {
+                        Tab tabToClose = x.getKey().getTab();
+                        Event.fireEvent(tabToClose,
+                                new Event(tabToClose, tabToClose, Tab.TAB_CLOSE_REQUEST_EVENT));
+                        Event.fireEvent(tabToClose,
+                                new Event(tabToClose, tabToClose, Tab.CLOSED_EVENT));
+                        tabPane.getTabs().remove(tabToClose);
+                        savedOpenFiles.remove(x.getKey());
+                        x.getValue().delete();
+                    }
+                }
+            }
+        }
     }
 }
