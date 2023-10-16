@@ -679,13 +679,7 @@ public class EspressoPadController implements Initializable {
                             .ifPresent(x -> {
                                 for (Map.Entry<TextEditor, File> textEditorFileEntry : savedOpenFiles.entrySet()) {
                                     if (textEditorFileEntry.getValue().getPath().equals(file.getPath())) {
-                                        Tab tabToClose = textEditorFileEntry.getKey().getTab();
-                                        Event.fireEvent(tabToClose,
-                                                new Event(tabToClose, tabToClose, Tab.TAB_CLOSE_REQUEST_EVENT));
-                                        Event.fireEvent(tabToClose,
-                                                new Event(tabToClose, tabToClose, Tab.CLOSED_EVENT));
-                                        tabPane.getTabs().remove(tabToClose);
-                                        savedOpenFiles.remove(textEditorFileEntry.getKey());
+                                        closeTab(textEditorFileEntry);
                                         break;
                                     }
                                 }
@@ -1150,24 +1144,33 @@ public class EspressoPadController implements Initializable {
                 this.getCurrentTextEditor().getCodeArea().getText()));
     }
 
+    private void closeTab(Map.Entry<TextEditor, File> entry) {
+        Tab tabToClose = entry.getKey().getTab();
+        Event.fireEvent(tabToClose,
+                new Event(tabToClose, tabToClose, Tab.TAB_CLOSE_REQUEST_EVENT));
+        Event.fireEvent(tabToClose,
+                new Event(tabToClose, tabToClose, Tab.CLOSED_EVENT));
+        tabPane.getTabs().remove(tabToClose);
+        savedOpenFiles.remove(entry.getKey());
+    }
+
     @FXML
     private void clearAllShelved(ActionEvent event) {
         File shelfPath = this.getHomePath().resolve("shelf").toFile();
         File[] shelf = shelfPath.listFiles();
         if (shelf != null && shelfPath.exists() && shelfPath.isDirectory() && shelf.length > 0) {
             for (File file : shelf) {
-                for (Map.Entry<TextEditor, File> x : this.unsavedOpenFiles.entrySet()) {
-                    if (x.getValue().getPath().equals(file.getPath())) {
-                        Tab tabToClose = x.getKey().getTab();
-                        Event.fireEvent(tabToClose,
-                                new Event(tabToClose, tabToClose, Tab.TAB_CLOSE_REQUEST_EVENT));
-                        Event.fireEvent(tabToClose,
-                                new Event(tabToClose, tabToClose, Tab.CLOSED_EVENT));
-                        tabPane.getTabs().remove(tabToClose);
-                        savedOpenFiles.remove(x.getKey());
-                        x.getValue().delete();
+                for (Map.Entry<TextEditor, File> entry : this.unsavedOpenFiles.entrySet()) {
+                    if (entry.getValue().getPath().equals(file.getPath())) {
+                        this.closeTab(entry);
+                        entry.getValue().delete();
                     }
                 }
+            }
+            shelf = shelfPath.listFiles();
+            if (shelf != null && shelf.length > 0) {
+                for (File file : shelf)
+                    file.delete();
             }
         }
     }
