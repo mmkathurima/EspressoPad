@@ -44,7 +44,6 @@ public class TextEditorAutoComplete {
     private ListView<String> autocomplete;
     private List<String> keyphrases;
     private TwoDimensional.Position caretPos;
-    private List<SnippetEvent> snippetEvents;
     private final EspressoPadController controller;
     private String shelvedFileName = null;
     private File savedFile = null;
@@ -295,7 +294,7 @@ public class TextEditorAutoComplete {
                                     switch (event.getCode()) {
                                         case TAB:
                                         case ENTER:
-                                            if (autoCompletePopup.isShowing())
+                                            if (autoCompletePopup != null && autoCompletePopup.isShowing())
                                                 tabAutoCompletion(currentLine);
                                         case UP:
                                         case DOWN:

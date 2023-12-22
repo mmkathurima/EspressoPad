@@ -9,6 +9,7 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.Objects;
 
 public class EspressoPadMain extends Application {
@@ -37,16 +38,20 @@ public class EspressoPadMain extends Application {
                 x.stop();
             }
             this.controller.stop();
+            this.controller.exit(null);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static void setThemeResource(Scene scene) {
-        String darkStyle = EspressoPadMain.class.getResource("dark-theme.css").toExternalForm();
-        if (OsThemeDetector.isSupported() && OsThemeDetector.getDetector().isDark())
-            scene.getStylesheets().add(darkStyle);
-        else scene.getStylesheets().remove(darkStyle);
+        URL url = EspressoPadMain.class.getResource("dark-theme.css");
+        if (url != null) {
+            String darkStyle = url.toExternalForm();
+            if (OsThemeDetector.isSupported() && OsThemeDetector.getDetector().isDark())
+                scene.getStylesheets().add(darkStyle);
+            else scene.getStylesheets().remove(darkStyle);
+        }
     }
 
     public static void main(String[] args) {

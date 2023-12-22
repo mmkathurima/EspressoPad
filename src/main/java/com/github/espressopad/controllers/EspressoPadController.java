@@ -134,7 +134,7 @@ public class EspressoPadController implements Initializable {
         Optional<Bounds> pos = this.getCurrentTextEditor().getCodeArea().getCaretBounds();
         this.popOver.setPrefHeight(200d);
         this.documentationView.setPrefHeight(200d);
-        this.popOver.show(this.stage, pos.get().getMaxX(), pos.get().getMaxY());
+        pos.ifPresent(x -> this.popOver.show(this.stage, x.getMaxX(), x.getMaxY()));
         return this.documentationView;
     }
 
@@ -587,8 +587,16 @@ public class EspressoPadController implements Initializable {
             output.html("");
 
         this.output.getEngine().executeScript("document.getElementById('output').innerHTML = '';");
-        new Thread(runTask).start();
-        new Thread(progressTask).start();
+        Thread run = new Thread(runTask);
+        Thread progress = new Thread(progressTask);
+        run.start();
+        progress.start();
+        try {
+            run.join();
+            progress.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @FXML
@@ -888,7 +896,7 @@ public class EspressoPadController implements Initializable {
     }
 
     @FXML
-    private void exit(ActionEvent event) {
+    public void exit(ActionEvent event) {
         Platform.exit();
         System.exit(0);
     }
