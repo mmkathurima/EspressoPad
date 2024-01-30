@@ -1,24 +1,3 @@
 Manifest-Version: 1.0
 Main-Class: com.github.espressopad.Main
-Class-Path: javaparser-core-3.25.1.jar javax.inject-1.jar javafx-web-17.
- 0.2.jar maven-model-builder-3.6.3.jar flowless-0.7.0.jar kotlin-stdlib-
- common-1.3.61.jar javafx-controls-17.0.2-win.jar javafx-media-17.0.2.ja
- r ikonli-core-12.3.1.jar okio-2.4.3.jar oshi-core-5.8.6.jar jSystemThem
- eDetector-3.8.jar richtextfx-0.11.0.jar annotations-22.0.0.jar javafx-f
- xml-17.0.2.jar maven-builder-support-3.6.3.jar javafx-base-17.0.2-win.j
- ar maven-archeologist-0.0.3.1.jar commons-lang3-3.8.1.jar jna-5.10.0.ja
- r javaparser-symbol-solver-core-3.25.1.jar okhttp-4.4.1.jar javafx-base
- -17.0.2.jar reactfx-2.0-M5.jar undofx-2.1.1.jar ikonli-javafx-12.3.1.ja
- r j2objc-annotations-1.3.jar plexus-interpolation-1.25.jar checker-qual
- -3.12.0.jar versioncompare-1.4.1.jar javafx-swing-17.0.2.jar maven-mode
- l-3.6.3.jar controlsfx-11.1.2.jar jfa-1.2.0.jar javafx-controls-17.0.2.
- jar javafx-swing-17.0.2-win.jar kotlin-stdlib-1.3.61.jar jAstyle-1.3.ja
- r javafx-graphics-17.0.2.jar unbescape-1.1.6.RELEASE.jar org.eclipse.si
- su.inject-0.3.4.jar listenablefuture-9999.0-empty-to-avoid-conflict-wit
- h-guava.jar jna-platform-5.10.0.jar javassist-3.29.2-GA.jar javafx-medi
- a-17.0.2-win.jar jsoup-1.15.3.jar ikonli-fontawesome5-pack-12.3.1.jar e
- rror_prone_annotations-2.11.0.jar wellbehavedfx-0.3.3.jar javafx-graphi
- cs-17.0.2-win.jar javafx-web-17.0.2-win.jar javafx-fxml-17.0.2-win.jar 
- maven-artifact-3.6.3.jar slf4j-api-1.7.32.jar guava-31.1-jre.jar jsr305
- -3.0.2.jar failureaccess-1.0.1.jar plexus-utils-3.2.1.jar
 
