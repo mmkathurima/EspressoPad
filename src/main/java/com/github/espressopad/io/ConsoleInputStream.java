@@ -2,6 +2,7 @@ package com.github.espressopad.io;
 
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
+import javax.swing.WindowConstants;
 import java.io.InputStream;
 
 public class ConsoleInputStream extends InputStream {
@@ -15,6 +16,7 @@ public class ConsoleInputStream extends InputStream {
             Object initial = optionPane.getInputValue();
             optionPane.setWantsInput(true);
             JDialog dialog = optionPane.createDialog("Awaiting input");
+            dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
             dialog.setAlwaysOnTop(true);
             dialog.setVisible(true);
             dialog.dispose();

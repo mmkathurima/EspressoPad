@@ -352,7 +352,7 @@ public class TextEditorAutoComplete {
                                                         || currentLine.charAt(currentLine.length() - 1) == '.' ||
                                                         currentLine.charAt(currentLine.length() - 1) == ' ')) {
                                             showDocumentation();
-                                            if (autoCompletePopup.isShowing())
+                                            if (autoCompletePopup != null && autoCompletePopup.isShowing())
                                                 autoCompletePopup.requestFocus();
                                         }
                                     } catch (IndexOutOfBoundsException e) {

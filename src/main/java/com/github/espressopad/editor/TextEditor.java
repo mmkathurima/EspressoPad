@@ -88,6 +88,7 @@ public class TextEditor {
 
     public void stop() throws IOException {
         this.executor.shutdown();
+        this.shell.close();
         this.shell.stop();
     }
 

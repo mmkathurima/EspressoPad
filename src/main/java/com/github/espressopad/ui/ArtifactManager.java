@@ -3,6 +3,7 @@ package com.github.espressopad.ui;
 import com.github.espressopad.controllers.ArtifactManagerController;
 import com.github.espressopad.controllers.EspressoPadController;
 import com.github.espressopad.editor.TextEditorAutoComplete;
+import com.github.espressopad.utils.Utils;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -47,7 +48,7 @@ public class ArtifactManager extends Application {
 
                     controller.getHandler().writeArtifactXml(artifacts);
                     Alert alert = new Alert(Alert.AlertType.INFORMATION, "Artifacts added to classpath.");
-                    EspressoPadMain.setThemeResource(alert.getDialogPane().getScene());
+                    Utils.setThemeResource(alert.getDialogPane().getScene());
                     alert.showAndWait();
                     //stage.close();
                 }
@@ -67,11 +68,11 @@ public class ArtifactManager extends Application {
 
                 controller.getHandler().writeImportXml(controller.getImportView().getItems());
                 Alert alert = new Alert(Alert.AlertType.INFORMATION, "Imports added.");
-                EspressoPadMain.setThemeResource(alert.getDialogPane().getScene());
+                Utils.setThemeResource(alert.getDialogPane().getScene());
                 alert.showAndWait();
             }
         });
-        EspressoPadMain.setThemeResource(scene);
+        Utils.setThemeResource(scene);
 
         stage.setScene(scene);
         stage.setTitle("Manage dependencies");

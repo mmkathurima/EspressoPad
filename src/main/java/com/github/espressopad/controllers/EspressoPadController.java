@@ -10,8 +10,8 @@ import com.github.espressopad.io.ConsoleInputStream;
 import com.github.espressopad.io.ConsoleOutputStream;
 import com.github.espressopad.ui.About;
 import com.github.espressopad.ui.ArtifactManager;
-import com.github.espressopad.ui.EspressoPadMain;
 import com.github.espressopad.ui.FilePathTreeItem;
+import com.github.espressopad.utils.Utils;
 import com.github.espressopad.xml.XmlHandler;
 import com.jthemedetecor.OsThemeDetector;
 import javafx.animation.PauseTransition;
@@ -23,7 +23,6 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.concurrent.Worker;
-import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
@@ -71,6 +70,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -275,7 +276,7 @@ public class EspressoPadController implements Initializable {
                 public void changed(ObservableValue<? extends Worker.State> obs, Worker.State oldState,
                                     Worker.State newState) {
                     if (newState == Worker.State.SUCCEEDED) {
-                        if (OsThemeDetector.isSupported() && OsThemeDetector.getDetector().isDark()) {
+                        if (OsThemeDetector.isSupported() && OsThemeDetector.getDetector().isDark() && false) {
                             org.w3c.dom.Document doc = engine.getDocument();
                             Element styleNode = doc.createElement("style");
                             org.w3c.dom.Text styleContent = doc.createTextNode(
@@ -378,6 +379,7 @@ public class EspressoPadController implements Initializable {
         this.outStream.close();
         this.errStream.close();
         this.shell.close();
+        this.shell.stop();
     }
 
     public void setupStageListeners(Stage stage) {
@@ -558,45 +560,19 @@ public class EspressoPadController implements Initializable {
             }
         };
         ProgressDialog progressDialog = new ProgressDialog(runTask);
-        Task<Void> progressTask = new Task<Void>() {
-            @Override
-            protected Void call() {
-                progressDialog.setContentText("Running...");
-                progressDialog.setTitle("Running");
-                progressDialog.setHeaderText("Please wait");
-                EspressoPadMain.setThemeResource(progressDialog.getDialogPane().getScene());
-                progressDialog.setOnCloseRequest(new EventHandler<DialogEvent>() {
-                    @Override
-                    public void handle(DialogEvent event) {
-                        shell.stop();
-                    }
-                });
-                return null;
-            }
-        };
-        progressTask.setOnRunning(new EventHandler<WorkerStateEvent>() {
-            @Override
-            public void handle(WorkerStateEvent event) {
-                if (!progressDialog.isShowing())
-                    progressDialog.showAndWait();
-            }
-        });
+        progressDialog.setContentText("Running...");
+        progressDialog.setTitle("Running");
+        progressDialog.setHeaderText("Please wait");
+        Utils.setThemeResource(progressDialog.getDialogPane().getScene());
 
         org.jsoup.nodes.Element output = document.getElementById("output");
         if (output != null && !output.html().isBlank())
             output.html("");
 
         this.output.getEngine().executeScript("document.getElementById('output').innerHTML = '';");
-        Thread run = new Thread(runTask);
-        Thread progress = new Thread(progressTask);
-        run.start();
-        progress.start();
-        try {
-            run.join();
-            progress.join();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        ExecutorService run = Executors.newFixedThreadPool(5);
+        run.submit(runTask);
+        run.shutdown();
     }
 
     @FXML
@@ -640,7 +616,7 @@ public class EspressoPadController implements Initializable {
                     String fileNameWOExt = fileName.replaceFirst("[.][^.]+$", "");
 
                     TextInputDialog dialog = new TextInputDialog(fileNameWOExt);
-                    EspressoPadMain.setThemeResource(dialog.getDialogPane().getScene());
+                    Utils.setThemeResource(dialog.getDialogPane().getScene());
                     dialog.setTitle(stage.getTitle());
                     dialog.setHeaderText(String.format("Rename %s to:", fileName));
                     dialog.setContentText("New file name:");
@@ -658,13 +634,13 @@ public class EspressoPadController implements Initializable {
                             } else {
                                 Alert alert = new Alert(Alert.AlertType.ERROR,
                                         String.format("Renaming '%s' failed.", fileName));
-                                EspressoPadMain.setThemeResource(alert.getDialogPane().getScene());
+                                Utils.setThemeResource(alert.getDialogPane().getScene());
                                 alert.showAndWait();
                             }
                         } else {
                             Alert alert = new Alert(Alert.AlertType.ERROR,
                                     String.format("Renaming '%s' failed. File exists.", fileName));
-                            EspressoPadMain.setThemeResource(alert.getDialogPane().getScene());
+                            Utils.setThemeResource(alert.getDialogPane().getScene());
                             alert.showAndWait();
                         }
                     });
@@ -681,7 +657,7 @@ public class EspressoPadController implements Initializable {
                     Alert alert = new Alert(Alert.AlertType.WARNING,
                             String.format("Are you sure you want to delete file '%s'?", file.getName()),
                             ButtonType.OK, ButtonType.CANCEL);
-                    EspressoPadMain.setThemeResource(alert.getDialogPane().getScene());
+                    Utils.setThemeResource(alert.getDialogPane().getScene());
                     alert.showAndWait()
                             .filter(x -> x == ButtonType.OK)
                             .ifPresent(x -> {
@@ -937,7 +913,7 @@ public class EspressoPadController implements Initializable {
         TwoDimensional.Position caretPos = this.getCursorPosition(codeArea);
         TextInputDialog dialog = new TextInputDialog(String.format("%d:%d", caretPos.getMajor() + 1,
                 caretPos.getMinor()));
-        EspressoPadMain.setThemeResource(dialog.getDialogPane().getScene());
+        Utils.setThemeResource(dialog.getDialogPane().getScene());
         dialog.setTitle(this.stage.getTitle());
         dialog.setHeaderText("Go to line:");
         dialog.setContentText("[Line] [:column]:");

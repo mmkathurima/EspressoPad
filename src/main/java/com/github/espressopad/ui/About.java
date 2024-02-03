@@ -1,5 +1,6 @@
 package com.github.espressopad.ui;
 
+import com.github.espressopad.utils.Utils;
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -64,7 +65,7 @@ public class About extends Application {
         productName.setFont(Font.font(Font.getDefault().getFamily(), FontWeight.EXTRA_BOLD, 36d));
         productName.setAlignment(Pos.CENTER);
 
-        Label details = new Label(String.format("v0.21.3\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
+        Label details = new Label(String.format("v0.23\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
                 System.getProperty("java.vm.vendor"), System.getProperty("java.vm.version"),
                 System.getProperty("os.arch"), System.getProperty("java.vm.name")));
         details.setAlignment(Pos.CENTER);
@@ -241,7 +242,7 @@ public class About extends Application {
         scrollPane.setPrefWidth(515);
 
         Scene scene = new Scene(scrollPane);
-        EspressoPadMain.setThemeResource(scene);
+        Utils.setThemeResource(scene);
 
         stage.setScene(scene);
         stage.initModality(Modality.WINDOW_MODAL);
