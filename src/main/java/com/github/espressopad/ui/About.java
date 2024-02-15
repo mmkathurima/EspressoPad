@@ -27,6 +27,7 @@ import java.net.URL;
 import java.time.Year;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class About extends Application {
@@ -55,6 +56,7 @@ public class About extends Application {
                 .stream()
                 .map(x -> Map.of("key", String.valueOf(x.getKey()),
                         "value", String.valueOf(x.getValue())))
+                .filter(x -> !Objects.equals(x.get("key"), "line.separator"))
                 .collect(Collectors.toList());
 
         tableView.getColumns().addAll(keyColumn, valueColumn);

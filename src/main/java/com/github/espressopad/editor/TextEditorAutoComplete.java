@@ -72,7 +72,6 @@ public class TextEditorAutoComplete {
         return this.autoCompletePopup;
     }
 
-
     private void tabAutoCompletion(String currentText) {
         if (currentText == null || this.keyphrases == null) return;
 
@@ -221,7 +220,6 @@ public class TextEditorAutoComplete {
                                         autoCompletePopup.hide();
                                 }
                             });
-
                         }
                     }).get();
                 } catch (InterruptedException | ExecutionException e) {
