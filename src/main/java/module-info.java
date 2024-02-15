@@ -10,10 +10,6 @@ module com.github.espressopad {
 
     requires jdk.jshell;
     requires java.desktop;
-    requires org.fxmisc.flowless;
-    requires org.fxmisc.richtext;
-    requires org.fxmisc.undo;
-    requires reactfx;
     requires maven.archeologist;
     requires kotlin.stdlib;
     requires kotlin.stdlib.common;
@@ -22,7 +18,9 @@ module com.github.espressopad {
     requires com.jthemedetector;
     requires org.jsoup;
     requires org.controlsfx.controls;
-    requires com.github.javaparser.core;
+    requires org.fife.RSyntaxTextArea;
+    requires javafx.swing;
+    requires autocomplete;
 
     opens com.github.espressopad;
     exports com.github.espressopad;

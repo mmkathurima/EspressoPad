@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.*?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.TextFlow?>
 <?import javafx.scene.web.WebView?>
-<?import org.kordamp.ikonli.javafx.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 <VBox xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx" fx:id="mainBox"
       fx:controller="com.github.espressopad.controllers.EspressoPadController" prefWidth="600" prefHeight="500">
     <MenuBar>
@@ -29,10 +29,6 @@
             <MenuItem accelerator="Shortcut+C" onAction="#copy" text="Copy"/>
             <MenuItem accelerator="Shortcut+V" onAction="#paste" text="Paste"/>
             <SeparatorMenuItem/>
-            <CheckMenuItem fx:id="toggleFindReplaceMenuItem" accelerator="Shortcut+F"
-                           onAction="#toggleFindReplace" text="Find/Replace"/>
-            <SeparatorMenuItem/>
-            <MenuItem accelerator="Shortcut+G" onAction="#goToLine" text="Go to line"/>
             <MenuItem accelerator="Shortcut+D" onAction="#duplicateLine" text="Duplicate Current Line"/>
             <MenuItem accelerator="Shortcut+A" onAction="#selectAllText" text="Select All"/>
             <MenuItem accelerator="Shortcut+Alt+L" onAction="#reformat" text="Reformat"/>
@@ -59,66 +55,7 @@
                         <Insets bottom="5.0" left="10.0" top="5.0"/>
                     </padding>
                 </HBox>
-                <VBox>
-                    <VBox fx:id="findReplaceBox" visible="false">
-                        <HBox spacing="5">
-                            <TextField fx:id="findText" promptText="Find"/>
-                            <Button onAction="#getPreviousMatch">
-                                <graphic>
-                                    <FontIcon iconLiteral="fas-arrow-up"/>
-                                </graphic>
-                                <tooltip>
-                                    <Tooltip text="Previous match"/>
-                                </tooltip>
-                            </Button>
-                            <Button onAction="#getNextMatch">
-                                <graphic>
-                                    <FontIcon iconLiteral="fas-arrow-down"/>
-                                </graphic>
-                                <tooltip>
-                                    <Tooltip text="Next match"/>
-                                </tooltip>
-                            </Button>
-                            <ToggleButton fx:id="matchCase" text="Cc">
-                                <tooltip>
-                                    <Tooltip text="Match case"/>
-                                </tooltip>
-                            </ToggleButton>
-                            <ToggleButton fx:id="matchWord" text="W">
-                                <tooltip>
-                                    <Tooltip text="Match word"/>
-                                </tooltip>
-                            </ToggleButton>
-                            <ToggleButton fx:id="matchRegex" text=".*">
-                                <tooltip>
-                                    <Tooltip text="Match regex"/>
-                                </tooltip>
-                            </ToggleButton>
-                            <Label fx:id="findResults"/>
-                            <Region HBox.hgrow="ALWAYS"/>
-                            <Button onAction="#toggleFindReplace">
-                                <graphic>
-                                    <FontIcon iconLiteral="fas-times"/>
-                                </graphic>
-                                <tooltip>
-                                    <Tooltip text="Close Find/Replace"/>
-                                </tooltip>
-                            </Button>
-                            <padding>
-                                <Insets bottom="5.0" left="10.0" top="5.0" right="10.0"/>
-                            </padding>
-                        </HBox>
-                        <HBox spacing="5">
-                            <TextField fx:id="replacementText" promptText="Replace"/>
-                            <Button onAction="#replaceOneMatch" text="Replace"/>
-                            <Button onAction="#replaceAllMatches" text="Replace All"/>
-                            <padding>
-                                <Insets bottom="5.0" left="10.0" top="5.0"/>
-                            </padding>
-                        </HBox>
-                    </VBox>
-                    <TabPane fx:id="tabPane"/>
-                </VBox>
+                <TabPane fx:id="tabPane"/>
             </VBox>
             <VBox fx:id="outputPane">
                 <HBox spacing="20">

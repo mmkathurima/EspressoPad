@@ -19,7 +19,6 @@ import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.concurrent.Worker;
@@ -28,16 +27,11 @@ import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Bounds;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontPosture;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
@@ -50,17 +44,13 @@ import jdk.jshell.JShell;
 import jdk.jshell.JShellException;
 import jdk.jshell.SnippetEvent;
 import jdk.jshell.SourceCodeAnalysis;
-import org.controlsfx.control.PopOver;
 import org.controlsfx.dialog.ProgressDialog;
-import org.fxmisc.richtext.CodeArea;
-import org.fxmisc.richtext.model.TwoDimensional;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.w3c.dom.Element;
 
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.filechooser.FileSystemView;
 import java.awt.Desktop;
 import java.io.*;
@@ -72,8 +62,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class EspressoPadController implements Initializable {
@@ -90,25 +78,7 @@ public class EspressoPadController implements Initializable {
     @FXML
     private VBox tabParent;
     @FXML
-    private VBox findReplaceBox;
-    @FXML
     private VBox outputPane;
-    @FXML
-    private CheckMenuItem toggleFindReplaceMenuItem;
-    @FXML
-    private TextField findText;
-    @FXML
-    private ToggleButton matchCase;
-    @FXML
-    private Label findResults;
-    @FXML
-    private ToggleButton matchWord;
-    @FXML
-    private ToggleButton matchRegex;
-    @FXML
-    private TextField replacementText;
-    @FXML
-    private Label cursorPosition;
 
     private final WebView documentationView = new WebView();
     private final XmlHandler handler = new XmlHandler();
@@ -123,21 +93,11 @@ public class EspressoPadController implements Initializable {
     private JShell shell;
     private File[] shelvedFiles;
     private File currentFile = null;
-    private int currentSelectionIndex = 0;
     private String html;
     private Document document;
     private Path homePath;
     private Stage stage;
     private Path dumpFile;
-    private final PopOver popOver = new PopOver(this.documentationView);
-
-    public WebView getDocumentationView() {
-        Optional<Bounds> pos = this.getCurrentTextEditor().getCodeArea().getCaretBounds();
-        this.popOver.setPrefHeight(200d);
-        this.documentationView.setPrefHeight(200d);
-        pos.ifPresent(x -> this.popOver.show(this.stage, x.getMaxX(), x.getMaxY()));
-        return this.documentationView;
-    }
 
     public List<TextEditor> getEditors() {
         return this.editors;
@@ -175,10 +135,6 @@ public class EspressoPadController implements Initializable {
         return this.dumpFile;
     }
 
-    public boolean isFindReplaceVisible() {
-        return this.findReplaceBox.isVisible() && this.toggleFindReplaceMenuItem.isSelected();
-    }
-
     @Override
     @FXML
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -195,18 +151,7 @@ public class EspressoPadController implements Initializable {
         TextEditorAutoComplete tac = new TextEditorAutoComplete(editor, this);
         this.autoCompleters.add(tac);
         this.editors.add(editor);
-        this.setBracketListener(editor);
-        this.editors.addListener(new ListChangeListener<TextEditor>() {
-            @Override
-            public void onChanged(Change<? extends TextEditor> c) {
-                while (c.next()) {
-                    if (c.wasAdded()) {
-                        for (TextEditor textEditor : c.getAddedSubList())
-                            setBracketListener(textEditor);
-                    }
-                }
-            }
-        });
+
         try (InputStream stream = this.getClass().getResourceAsStream("default-webview.html")) {
             if (stream != null) {
                 this.html = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
@@ -222,7 +167,6 @@ public class EspressoPadController implements Initializable {
         this.in = new ConsoleInputStream();
         this.shell = JShell.builder().out(this.outStream).err(this.errStream).in(this.in).build();
 
-        this.findReplaceBox.managedProperty().bind(this.findReplaceBox.visibleProperty());
         this.output.prefHeightProperty().bind(this.outputPane.heightProperty());
 
         if (this.handler.getArtifactFile().exists()) {
@@ -245,7 +189,6 @@ public class EspressoPadController implements Initializable {
 
         this.refreshFileTree();
         this.setupContextMenu();
-        this.setCurrentPosition(editor.getCodeArea());
 
         try {
             File shelf = this.homePath.resolve("shelf").toFile();
@@ -256,7 +199,7 @@ public class EspressoPadController implements Initializable {
                     tab = new Tab(String.format("*Shelved %d", i + 1));
                     this.tabPane.getTabs().add(this.tabPane.getTabs().size() - 1, tab);
                     TextEditor textEditor = new TextEditor(tab);
-                    textEditor.getCodeArea().replaceText(Files.readString(shelfFile.toPath()));
+                    textEditor.getCodeArea().setText(Files.readString(shelfFile.toPath()));
                     TextEditorAutoComplete autoComplete = new TextEditorAutoComplete(textEditor, shelfFile.getName(),
                             this);
                     this.autoCompleters.add(autoComplete);
@@ -292,39 +235,6 @@ public class EspressoPadController implements Initializable {
             });
         }
         this.documentationView.getEngine().loadContent("<div/>");
-
-        this.findText.textProperty().addListener(new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                if (findText.getText().isBlank())
-                    resetHighlighting();
-                currentSelectionIndex = 0;
-                getSearchResults();
-            }
-        });
-
-        try {
-            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if (info.getName().equals("Nimbus")) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException |
-                 UnsupportedLookAndFeelException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void setBracketListener(TextEditor editor) {
-        editor.getCodeArea().caretPositionProperty().addListener(new ChangeListener<Integer>() {
-            @Override
-            public void changed(ObservableValue<? extends Integer> observable, Integer oldValue,
-                                Integer newValue) {
-                editor.getHighlighter().highlightBracket(newValue);
-                setCurrentPosition(editor.getCodeArea());
-            }
-        });
     }
 
     private int getTreeItemComparator(TreeItem<File> o1, TreeItem<File> o2) {
@@ -335,16 +245,6 @@ public class EspressoPadController implements Initializable {
         else if (o1.isLeaf() && !o2.isLeaf())
             return 1;
         return -1;
-    }
-
-    private TwoDimensional.Position getCursorPosition(CodeArea codeArea) {
-        return codeArea.offsetToPosition(codeArea.getCaretPosition(), TwoDimensional.Bias.Forward);
-    }
-
-    private void setCurrentPosition(CodeArea codeArea) {
-        TwoDimensional.Position caretPos = this.getCursorPosition(codeArea);
-        cursorPosition.setText(String.format("Line %d, Col %d",
-                caretPos.getMajor() + 1, caretPos.getMinor() + 1));
     }
 
     private String getFileExtension(String fileName) {
@@ -385,18 +285,6 @@ public class EspressoPadController implements Initializable {
     public void setupStageListeners(Stage stage) {
         this.stage = stage;
         Rectangle2D screenBounds = Screen.getPrimary().getBounds();
-        stage.focusedProperty().addListener(new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> observable, Boolean hidden, Boolean shown) {
-                if (hidden) closeAllPopups();
-            }
-        });
-        stage.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                closeAllPopups();
-            }
-        });
         stage.widthProperty().addListener(new ChangeListener<Number>() {
             @Override
             public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
@@ -423,8 +311,6 @@ public class EspressoPadController implements Initializable {
 
         this.splitPane.setPrefHeight(stage.getHeight());
         this.tabParent.setPrefHeight(.75 * screenBounds.getHeight());
-        for (TextEditor textEditor : this.editors)
-            textEditor.getCodeArea().setPrefHeight(.9 * this.tabParent.getPrefHeight());
     }
 
     private void openFileFromTreeView() {
@@ -439,11 +325,6 @@ public class EspressoPadController implements Initializable {
                 }
             }
         }
-    }
-
-    private void closeAllPopups() {
-        this.autoCompleters.stream().filter(x -> x.getAutoCompletePopup() != null && x.getAutoCompletePopup().isShowing())
-                .forEach(x -> x.getAutoCompletePopup().hide());
     }
 
     // Tab that acts as a button and adds a new tab and selects it
@@ -481,23 +362,6 @@ public class EspressoPadController implements Initializable {
             }
         });
         return addTab;
-    }
-
-    private List<String> getMonospaceFonts() {
-        final Text th = new Text("1 l");
-        final Text tk = new Text("MWX");
-
-        List<String> fontFamilyList = Font.getFamilies();
-        List<String> mFamilyList = new ArrayList<>();
-
-        for (String fontFamilyName : fontFamilyList) {
-            Font font = Font.font(fontFamilyName, FontWeight.NORMAL, FontPosture.REGULAR, 14.0d);
-            th.setFont(font);
-            tk.setFont(font);
-            if (th.getLayoutBounds().getWidth() == tk.getLayoutBounds().getWidth())
-                mFamilyList.add(fontFamilyName);
-        }
-        return mFamilyList;
     }
 
     private void runCode() {
@@ -745,14 +609,9 @@ public class EspressoPadController implements Initializable {
                     if (savedOpenFiles.containsKey(textEditor))
                         saveFile((ActionEvent) null);
 
-                    textEditor.getSubscriber().unsubscribe();
-                    textEditor.stop();
                     editors.remove(textEditor);
                     autoCompleters.remove(autoComplete);
                     savedOpenFiles.remove(textEditor);
-
-                    for (var editor : editors)
-                        editor.getCodeArea().setPrefHeight(stage.getHeight());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -794,7 +653,7 @@ public class EspressoPadController implements Initializable {
             if (!this.savedOpenFiles.containsValue(file)) {
                 this.createNewFile(file);
                 TextEditor textEditor = this.getCurrentTextEditor();
-                textEditor.getCodeArea().replaceText(Files.readString(file.toPath()));
+                textEditor.getCodeArea().setText(Files.readString(file.toPath()));
                 this.tabPane.getSelectionModel().getSelectedItem().setText(file.getName());
                 this.savedOpenFiles.put(textEditor, file);
             } else this.savedOpenFiles.entrySet()
@@ -879,12 +738,16 @@ public class EspressoPadController implements Initializable {
 
     @FXML
     private void undo(ActionEvent event) {
-        this.getCurrentTextEditor().getCodeArea().undo();
+        RSyntaxTextArea codeArea = this.getCurrentTextEditor().getCodeArea();
+        if (codeArea.canUndo())
+            codeArea.undoLastAction();
     }
 
     @FXML
     private void redo(ActionEvent event) {
-        this.getCurrentTextEditor().getCodeArea().redo();
+        RSyntaxTextArea codeArea = this.getCurrentTextEditor().getCodeArea();
+        if (codeArea.canRedo())
+            this.getCurrentTextEditor().getCodeArea().redoLastAction();
     }
 
     @FXML
@@ -908,41 +771,8 @@ public class EspressoPadController implements Initializable {
     }
 
     @FXML
-    private void goToLine(ActionEvent event) {
-        CodeArea codeArea = this.getCurrentTextEditor().getCodeArea();
-        TwoDimensional.Position caretPos = this.getCursorPosition(codeArea);
-        TextInputDialog dialog = new TextInputDialog(String.format("%d:%d", caretPos.getMajor() + 1,
-                caretPos.getMinor()));
-        Utils.setThemeResource(dialog.getDialogPane().getScene());
-        dialog.setTitle(this.stage.getTitle());
-        dialog.setHeaderText("Go to line:");
-        dialog.setContentText("[Line] [:column]:");
-        dialog.showAndWait().ifPresent(x -> {
-            if (x.matches("^\\d+:\\d+$")) {
-                String[] goTo = x.split(":");
-
-                int row = Integer.parseInt(goTo[0]) - 1, col = Integer.parseInt(goTo[1]);
-                if (row < 0)
-                    row = 0;
-                if (row > codeArea.getParagraphs().size())
-                    row = codeArea.getParagraphs().size() - 1;
-                int longestCol = codeArea.getText(row).length();
-                if (col < 0)
-                    col = 0;
-                if (col > longestCol)
-                    col = longestCol;
-                codeArea.moveTo(row, col);
-            }
-        });
-    }
-
-    @FXML
     private void duplicateLine(ActionEvent event) {
-        TwoDimensional.Position caretPos = this.getCursorPosition(this.getCurrentTextEditor().getCodeArea());
-        String currentLine = this.getCurrentTextEditor().getCodeArea()
-                .getText(caretPos.getMajor()).substring(0, caretPos.getMinor());
-        this.getCurrentTextEditor().getCodeArea().insertText(caretPos.getMajor(), caretPos.getMinor(),
-                String.format("\n%s", currentLine));
+
     }
 
     @FXML
@@ -959,7 +789,7 @@ public class EspressoPadController implements Initializable {
                 this.getCurrentTextEditor().getCodeArea().getText()))) {
             try (Writer writer = new StringWriter()) {
                 formatter.format(reader, writer);
-                this.getCurrentTextEditor().getCodeArea().replaceText(writer.toString());
+                this.getCurrentTextEditor().getCodeArea().setText(writer.toString());
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -993,139 +823,6 @@ public class EspressoPadController implements Initializable {
                 new About(stage).start(new Stage());
             }
         });
-    }
-
-    @FXML
-    private void toggleFindReplace(ActionEvent event) {
-        this.findReplaceBox.setVisible(!this.findReplaceBox.isVisible());
-        this.toggleFindReplaceMenuItem.setSelected(this.findReplaceBox.isVisible());
-        if (this.findReplaceBox.isVisible()) {
-            String selection = this.getCurrentTextEditor().getCodeArea().getSelectedText();
-            if (!selection.isBlank())
-                this.findText.setText(selection);
-            this.findText.requestFocus();
-            this.currentSelectionIndex = 0;
-            this.getSearchResults();
-        } else this.resetHighlighting();
-    }
-
-    public List<Integer> indicesOf(String haystack, String needle,
-                                   boolean ignoreCase, boolean matchRegex, boolean matchWord) {
-        List<Integer> matches = new ArrayList<>();
-        if (needle == null || needle.isBlank())
-            return matches;
-
-        int index = haystack.indexOf(needle);
-
-        if (ignoreCase && !matchRegex && !matchWord) {
-            // Convert both the text and substring to lowercase for a case-insensitive search
-            haystack = haystack.toLowerCase();
-            needle = needle.toLowerCase();
-            index = haystack.indexOf(needle);
-        }
-
-        if (matchRegex || matchWord) {
-            Pattern pattern;
-            if (matchWord) {
-                if (ignoreCase)
-                    pattern = Pattern.compile(String.format("\\b%s\\b", Pattern.quote(needle)), Pattern.CASE_INSENSITIVE);
-                else pattern = Pattern.compile(String.format("\\b%s\\b", Pattern.quote(needle)));
-            } else {
-                if (ignoreCase)
-                    pattern = Pattern.compile(needle, Pattern.CASE_INSENSITIVE);
-                else pattern = Pattern.compile(needle);
-            }
-
-            Matcher matcher = pattern.matcher(haystack);
-            while (matcher.find()) {
-                index = matcher.start();
-                matches.add(index);
-            }
-        } else while (index >= 0) {
-            matches.add(index);
-            index = haystack.indexOf(needle, index + 1);
-        }
-        return matches;
-    }
-
-    @FXML
-    private void getPreviousMatch(ActionEvent event) {
-        List<Integer> indices = this.indicesOf(this.getCurrentTextEditor().getCodeArea().getText(), this.findText.getText(),
-                !this.matchCase.isSelected(), this.matchRegex.isSelected(), this.matchWord.isSelected());
-        this.currentSelectionIndex--;
-        if (this.currentSelectionIndex < 0)
-            this.currentSelectionIndex = indices.size() - 1;
-        this.getSearchResults(indices);
-    }
-
-    @FXML
-    private void getNextMatch(ActionEvent event) {
-        List<Integer> indices = this.indicesOf(this.getCurrentTextEditor().getCodeArea().getText(), this.findText.getText(),
-                !this.matchCase.isSelected(), this.matchRegex.isSelected(), this.matchWord.isSelected());
-        this.currentSelectionIndex++;
-        if (this.currentSelectionIndex >= indices.size())
-            this.currentSelectionIndex = 0;
-        this.getSearchResults(indices);
-    }
-
-    @FXML
-    private void replaceOneMatch(ActionEvent event) {
-        String findTxt = this.findText.getText();
-        CodeArea area = this.getCurrentTextEditor().getCodeArea();
-
-        List<Integer> indices = this.indicesOf(area.getText(), findTxt,
-                !this.matchCase.isSelected(), this.matchRegex.isSelected(), this.matchWord.isSelected());
-        if (!indices.isEmpty()) {
-            int j = indices.get(this.currentSelectionIndex);
-            area.replaceText(j, j + findTxt.length(), this.replacementText.getText());
-        }
-    }
-
-    @FXML
-    private void replaceAllMatches(ActionEvent event) {
-        String findTxt = this.findText.getText();
-        CodeArea area = this.getCurrentTextEditor().getCodeArea();
-        String txt = area.getText();
-
-        List<Integer> indices = this.indicesOf(txt, findTxt,
-                !this.matchCase.isSelected(), this.matchRegex.isSelected(), this.matchWord.isSelected());
-        if (!indices.isEmpty()) {
-            List<String> searches = indices.stream()
-                    .map(i -> area.getText(i, i + findTxt.length()))
-                    .collect(Collectors.toList());
-            for (String s : searches)
-                txt = txt.replace(s, this.replacementText.getText());
-            area.replaceText(txt);
-        }
-    }
-
-    public void getSearchResults() {
-        this.getSearchResults(this.indicesOf(this.getCurrentTextEditor().getCodeArea().getText(), this.findText.getText(),
-                !this.matchCase.isSelected(), this.matchRegex.isSelected(), this.matchWord.isSelected()));
-    }
-
-    private void getSearchResults(List<Integer> indices) {
-        CodeArea area = this.getCurrentTextEditor().getCodeArea();
-        TwoDimensional.Position caretPos = this.getCursorPosition(area);
-        this.resetHighlighting();
-
-        if (!indices.isEmpty()) {
-            int j = indices.get(currentSelectionIndex);
-            int len = this.findText.getText().length();
-            for (int index : indices)
-                area.setStyle(index, index + len, Collections.singletonList("findMatch"));
-            //area.moveTo(j, NavigationActions.SelectionPolicy.CLEAR);
-            area.selectRange(j, j + len);
-            findResults.setText(String.format("Result %d of %d", currentSelectionIndex + 1, indices.size()));
-        } else {
-            area.moveTo(caretPos.getMajor(), caretPos.getMinor());
-            findResults.setText("No Results");
-        }
-    }
-
-    public void resetHighlighting() {
-        this.getCurrentTextEditor().applyHighlighting(TextEditor.computeHighlighting(
-                this.getCurrentTextEditor().getCodeArea().getText()));
     }
 
     private void closeTab(Map.Entry<TextEditor, File> entry) {

@@ -33,7 +33,6 @@ public class EspressoPadMain extends Application {
         try {
             super.stop();
             for (TextEditor x : this.controller.getEditors()) {
-                x.getSubscriber().unsubscribe();
                 x.stop();
             }
             this.controller.stop();
