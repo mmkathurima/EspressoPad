@@ -28,7 +28,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
@@ -113,16 +116,21 @@ public class TextEditorAutoComplete {
                 .completionSuggestions(currentLine, currentLine.length(), new int[1])
                 .stream()
                 .map(SourceCodeAnalysis.Suggestion::continuation)
+                .filter(x -> !x.trim().matches("^\\$\\d+$"))
                 .collect(Collectors.toList());
         if (this.autoCompletePopup != null)
             this.autoCompletePopup.hide();
         if (!this.keyphrases.isEmpty()) {
             this.autocomplete.getItems().setAll(this.keyphrases);
             this.autoCompletePopup = new Popup();
-            this.autocomplete.setMaxHeight(80);
+            this.autocomplete.setMaxHeight(200);
             this.autoCompletePopup.getContent().add(this.autocomplete);
 
             textBounds = this.textEditor.getCodeArea().getCaretBounds().get();
+            this.showDocumentation(
+                    textBounds.getMaxX() + this.autocomplete.getWidth(),
+                    textBounds.getMaxY()// + this.autocomplete.getMaxHeight()
+            );
             this.autoCompletePopup.show(this.textEditor.getCodeArea(), textBounds.getMaxX(), textBounds.getMaxY());
             if (!this.autocomplete.getItems().isEmpty())
                 this.autocomplete.getSelectionModel().select(0);
@@ -130,7 +138,7 @@ public class TextEditorAutoComplete {
         this.textEditor.getCodeArea().requestFocus();
     }
 
-    private void showDocumentation() {
+    private void showDocumentation(double x, double y) {
         try (JShell docShell = JShell.builder().out(null).err(null).in(null).build()) {
             this.addArtifactsAndImports(docShell);
             this.addSnippets(docShell);
@@ -143,10 +151,12 @@ public class TextEditorAutoComplete {
                     .documentation(this.currentLine, this.currentLine.length(), true);
 
             if (!docs.isEmpty())
-                this.controller.getDocumentationView().getEngine().loadContent(docs.stream()
-                        .map(doc -> String.format("<div><code>%s</code><br><br>%s<hr/></div>", doc.signature(),
-                                HtmlHandler.convertJavaDoc(doc.javadoc())))
-                        .collect(Collectors.joining()));
+                this.controller.getDocumentationView(400, 200, x, y).getEngine().loadContent(
+                        docs.stream()
+                                .map(doc -> String.format("<div><code>%s</code><br><br>%s<hr/></div>", doc.signature(),
+                                        HtmlHandler.convertJavaDoc(doc.javadoc())))
+                                .collect(Collectors.joining())
+                );
         }
     }
 
@@ -169,7 +179,7 @@ public class TextEditorAutoComplete {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
                 try {
-                    Executors.newFixedThreadPool(10).submit(new Runnable() {
+                    Executors.newSingleThreadExecutor().submit(new Runnable() {
                         @Override
                         public void run() {
                             Platform.runLater(new Runnable() {
@@ -247,7 +257,7 @@ public class TextEditorAutoComplete {
             @Override
             public void handle(KeyEvent event) {
                 try {
-                    Executors.newFixedThreadPool(10).submit(new Runnable() {
+                    Executors.newSingleThreadExecutor().submit(new Runnable() {
                         @Override
                         public void run() {
                             Platform.runLater(new Runnable() {
@@ -321,7 +331,7 @@ public class TextEditorAutoComplete {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
                 try {
-                    Executors.newFixedThreadPool(10).submit(new Runnable() {
+                    Executors.newSingleThreadExecutor().submit(new Runnable() {
                         @Override
                         public void run() {
                             Platform.runLater(new Runnable() {
@@ -338,18 +348,18 @@ public class TextEditorAutoComplete {
                                     if (controller.isFindReplaceVisible())
                                         controller.getSearchResults();
                                     if (Arrays.stream(TextEditorConstants.KEYWORDS).noneMatch(word::equals)) {
-                                        List<Integer> matches = controller.indicesOf(textEditor.getCodeArea().getText(),
+                                        /*List<Integer> matches = controller.indicesOf(textEditor.getCodeArea().getText(),
                                                 word, false, true, true);
                                         for (int match : matches)
                                             textEditor.getCodeArea().setStyle(match, match + word.length(),
-                                                    Collections.singletonList("matches"));
+                                                    Collections.singletonList("matches"));*/
                                     }
                                     try {
                                         if (!textEditor.getCodeArea().getText().isBlank() &&
                                                 (currentLine.charAt(currentLine.length() - 1) == '('
                                                         || currentLine.charAt(currentLine.length() - 1) == '.' ||
                                                         currentLine.charAt(currentLine.length() - 1) == ' ')) {
-                                            showDocumentation();
+                                            //showDocumentation();
                                             if (autoCompletePopup != null && autoCompletePopup.isShowing())
                                                 autoCompletePopup.requestFocus();
                                         }

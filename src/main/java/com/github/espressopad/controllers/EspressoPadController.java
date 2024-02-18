@@ -131,11 +131,13 @@ public class EspressoPadController implements Initializable {
     private Path dumpFile;
     private final PopOver popOver = new PopOver(this.documentationView);
 
-    public WebView getDocumentationView() {
+    public WebView getDocumentationView(double width, double height, double x, double y) {
         Optional<Bounds> pos = this.getCurrentTextEditor().getCodeArea().getCaretBounds();
-        this.popOver.setPrefHeight(200d);
-        this.documentationView.setPrefHeight(200d);
-        pos.ifPresent(x -> this.popOver.show(this.stage, x.getMaxX(), x.getMaxY()));
+        this.popOver.setPrefWidth(width);
+        this.documentationView.setPrefWidth(width);
+        this.popOver.setPrefHeight(height);
+        this.documentationView.setPrefHeight(height);
+        pos.ifPresent(b -> this.popOver.show(this.stage, x, y));
         return this.documentationView;
     }
 
@@ -321,7 +323,7 @@ public class EspressoPadController implements Initializable {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue,
                                 Integer newValue) {
-                editor.getHighlighter().highlightBracket(newValue);
+                //editor.getHighlighter().highlightBracket(newValue);
                 setCurrentPosition(editor.getCodeArea());
             }
         });
