@@ -2,12 +2,14 @@ package com.github.espressopad.ui;
 
 import com.github.espressopad.utils.Utils;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.MapValueFactory;
@@ -44,6 +46,21 @@ public class About extends Application {
         VBox dependencyView = new VBox();
 
         tableView.setEditable(false);
+        tableView.widthProperty().addListener(new ChangeListener<Number>() {
+            @Override
+            public void changed(ObservableValue<? extends Number> src, Number o, Number n) {
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (o != null && o.intValue() > 0)
+                            return; // already aligned
+                        for (Node node : tableView.lookupAll(".column-header > .label"))
+                            if (node instanceof Label)
+                                ((Label) node).setAlignment(Pos.CENTER_LEFT);
+                    }
+                });
+            }
+        });
 
         TableColumn<Map<String, String>, String> keyColumn = new TableColumn<>("Property Key");
         keyColumn.setCellValueFactory(new MapValueFactory("key"));
@@ -67,7 +84,7 @@ public class About extends Application {
         productName.setFont(Font.font(Font.getDefault().getFamily(), FontWeight.EXTRA_BOLD, 36d));
         productName.setAlignment(Pos.CENTER);
 
-        Label details = new Label(String.format("v0.23.1\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
+        Label details = new Label(String.format("v0.23.2\n©%d\nRuntime: %s %s %s\nVM: %s", Year.now().getValue(),
                 System.getProperty("java.vm.vendor"), System.getProperty("java.vm.version"),
                 System.getProperty("os.arch"), System.getProperty("java.vm.name")));
         details.setAlignment(Pos.CENTER);

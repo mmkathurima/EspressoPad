@@ -23,6 +23,9 @@ module com.github.espressopad {
     requires org.jsoup;
     requires org.controlsfx.controls;
     requires com.github.javaparser.core;
+    requires org.slf4j;
+    requires ch.qos.logback.classic;
+    requires ch.qos.logback.core;
 
     opens com.github.espressopad;
     exports com.github.espressopad;

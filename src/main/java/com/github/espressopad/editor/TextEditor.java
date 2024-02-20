@@ -1,5 +1,6 @@
 package com.github.espressopad.editor;
 
+import com.github.espressopad.utils.Utils;
 import javafx.concurrent.Task;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.StackPane;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -79,7 +81,10 @@ public class TextEditor {
         // call when no longer need it: `cleanupWhenFinished.unsubscribe();`
 
         //this.codeArea.replaceText(0, 0, TextEditorConstants.sampleCode);
-        this.codeArea.setStyle("-fx-font-family: consolas, monospace; -fx-font-size: 11pt;");
+        List<String> monospace = Utils.getMonospaceFonts();
+        if (monospace.contains("Consolas"))
+            this.codeArea.setStyle("-fx-font-family: Consolas, monospace; -fx-font-size: 11pt;");
+        else this.codeArea.setStyle("-fx-font-family: monospace; -fx-font-size: 11pt;");
         this.codeArea.setId("code-area");
         this.codeArea.setWrapText(true);
         tab.setContent(new StackPane(new VirtualizedScrollPane<>(this.codeArea)));

@@ -76,7 +76,8 @@ public class TextEditorAutoComplete {
     }
 
     private void tabAutoCompletion(String currentText) {
-        if (currentText == null || this.keyphrases == null) return;
+        if (currentText == null || this.keyphrases == null)
+            return;
 
         final AtomicReference<String> finalCurrentText = new AtomicReference<>(currentText);
         Pattern pattern = Pattern.compile("\\b(\\w+)$");

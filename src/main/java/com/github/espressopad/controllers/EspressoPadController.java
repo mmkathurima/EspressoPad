@@ -34,10 +34,6 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontPosture;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
@@ -57,6 +53,7 @@ import org.fxmisc.richtext.model.TwoDimensional;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.slf4j.Logger;
 import org.w3c.dom.Element;
 
 import javax.swing.UIManager;
@@ -130,6 +127,7 @@ public class EspressoPadController implements Initializable {
     private Stage stage;
     private Path dumpFile;
     private final PopOver popOver = new PopOver(this.documentationView);
+    private final Logger logger = Utils.getLogger(EspressoPadController.class);
 
     public WebView getDocumentationView(double width, double height, double x, double y) {
         Optional<Bounds> pos = this.getCurrentTextEditor().getCodeArea().getCaretBounds();
@@ -485,23 +483,6 @@ public class EspressoPadController implements Initializable {
         return addTab;
     }
 
-    private List<String> getMonospaceFonts() {
-        final Text th = new Text("1 l");
-        final Text tk = new Text("MWX");
-
-        List<String> fontFamilyList = Font.getFamilies();
-        List<String> mFamilyList = new ArrayList<>();
-
-        for (String fontFamilyName : fontFamilyList) {
-            Font font = Font.font(fontFamilyName, FontWeight.NORMAL, FontPosture.REGULAR, 14.0d);
-            th.setFont(font);
-            tk.setFont(font);
-            if (th.getLayoutBounds().getWidth() == tk.getLayoutBounds().getWidth())
-                mFamilyList.add(fontFamilyName);
-        }
-        return mFamilyList;
-    }
-
     private void runCode() {
         this.document = Jsoup.parse((String) this.output.getEngine().executeScript("document.documentElement.outerHTML"));
         Task<Void> runTask = new Task<Void>() {
@@ -515,7 +496,7 @@ public class EspressoPadController implements Initializable {
                         .stream()
                         .map(imports -> String.format("import %s;", imports))
                         .collect(Collectors.joining()));
-                System.err.println(l.stream().map(x -> shell.diagnostics(x.snippet()).map(y -> y.getMessage(Locale.ENGLISH))
+                logger.debug("IMPORTS: {}", l.stream().map(x -> shell.diagnostics(x.snippet()).map(y -> y.getMessage(Locale.ENGLISH))
                         .collect(Collectors.toList())).collect(Collectors.toList()));
                 while (!completion.source().isBlank()) {
                     List<SnippetEvent> snippets = shell.eval(completion.source());
@@ -525,28 +506,29 @@ public class EspressoPadController implements Initializable {
                         String src = snippet.snippet().source().trim();
                         switch (snippet.status()) {
                             case VALID:
-                                System.out.printf("Code evaluation successful at \"%s\" ", src);
+                                String info = "Code evaluation successful at \"{}\"";
                                 if (snippet.value() != null && !snippet.value().isBlank()) {
-                                    System.out.print("and returned a value");
+                                    info += " and returned a value";
                                     //this.printStream.printf("\"%s\" ==> %s\n", src, snippet.value());
                                 }
-                                System.out.println();
+                                logger.debug(info, src);
                                 break;
                             case REJECTED: //Compile time errors
                                 List<String> errors = shell.diagnostics(snippet.snippet())
                                         .map(x -> String.format("\n\"%s\" -> %s\n", src,
                                                 x.getMessage(Locale.ENGLISH)))
                                         .collect(Collectors.toList());
-                                System.err.printf("Code evaluation failed.\nDiagnostic info:\n%s\n", errors);
+                                logger.error("Code evaluation failed");
+                                logger.error("Diagnostic info:\n{}", errors);
                                 errStream.println(errors);
                                 break;
                         }
                         //Runtime errors
                         if (snippet.exception() != null) {
-                            System.err.printf("Code evaluation failed at \"%s\".\n", src);
+                            logger.error("Code evaluation failed at \"{}\"", src);
                             errStream.printf("Code evaluation failed at \"%s\"\nDiagnostic info:\n", src);
                             snippet.exception().printStackTrace(errStream);
-                            snippet.exception().printStackTrace(System.err);
+                            logger.error("EVALUATION ERROR", snippet.exception());
                             try {
                                 throw snippet.exception();
                             } catch (JShellException e) {

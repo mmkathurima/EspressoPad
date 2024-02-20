@@ -11,6 +11,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 public class ArtifactManager extends Application {
     private final EspressoPadController jController;
     private ArtifactManagerController controller;
+    private final Logger logger = Utils.getLogger(ArtifactManager.class);
 
     public ArtifactManager(EspressoPadController controller) {
         this.jController = controller;
@@ -37,7 +39,7 @@ public class ArtifactManager extends Application {
                 controller.downloadArtifacts();
                 List<String> artifacts = controller.getArtifacts();
                 if (artifacts != null && !artifacts.isEmpty()) {
-                    System.out.printf("Artifacts: %s\n", artifacts);
+                    logger.debug("Artifacts: {}", artifacts);
                     for (String artifact : artifacts)
                         jController.getShell().addToClasspath(artifact);
 
