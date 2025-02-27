@@ -53,7 +53,7 @@ public class ConsoleOutputStream extends ByteArrayOutputStream {
     public void flush() {
         String message = this.toString();
 
-        if (message.length() == 0) return;
+        if (message.isEmpty()) return;
 
         if (this.messageConsole.isAppend())
             this.handleAppend(message);

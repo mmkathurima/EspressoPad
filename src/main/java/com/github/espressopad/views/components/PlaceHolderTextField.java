@@ -40,7 +40,7 @@ public class PlaceHolderTextField extends JTextField {
     protected void paintComponent(Graphics pG) {
         super.paintComponent(pG);
 
-        if (this.placeHolder == null || this.placeHolder.length() == 0 || this.getText().length() > 0) return;
+        if (this.placeHolder == null || this.placeHolder.isEmpty() || !this.getText().isEmpty()) return;
 
         Graphics2D g = (Graphics2D) pG;
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);

@@ -1,21 +1,15 @@
 package com.github.espressopad.models;
 
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import java.io.Serializable;
 
 @JacksonXmlRootElement(localName = "settings")
 public class SettingsModel implements Serializable {
-    @JacksonXmlProperty(localName = "font")
     private String font;
-    @JacksonXmlProperty(localName = "fontSize")
     private int fontSize;
-    @JacksonXmlProperty(localName = "theme")
     private String theme;
-    @JacksonXmlProperty(localName = "wordWrap")
     private boolean wordWrap;
-    @JacksonXmlProperty(localName = "lookAndFeel")
     private String lookAndFeel;
 
     public String getFont() {

@@ -29,7 +29,6 @@ public class AboutView {
     private JButton buttonOK;
     private JTable propertiesTable;
     private JTextField filterPropertiesText;
-    private JButton viewGithubBtn;
     private final ResourceBundle resourceBundle = ResourceBundle.getBundle("messages", Locale.getDefault());
 
     public AboutView(JFrame frame) {
@@ -250,17 +249,17 @@ public class AboutView {
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(0, 10, 10, 0);
         panel4.add(label11, gbc);
-        this.viewGithubBtn = new JButton();
-        this.viewGithubBtn.setIcon(FontIcon.of(FontAwesomeBrands.GITHUB, 15));
-        this.viewGithubBtn.setToolTipText(this.resourceBundle.getString("view.my.github.profile"));
-        this.viewGithubBtn.addActionListener(this::browseGithub);
-        this.viewGithubBtn.setText("");
+        JButton viewGithubBtn = new JButton();
+        viewGithubBtn.setIcon(FontIcon.of(FontAwesomeBrands.GITHUB, 15));
+        viewGithubBtn.setToolTipText(this.resourceBundle.getString("view.my.github.profile"));
+        viewGithubBtn.addActionListener(this::browseGithub);
+        viewGithubBtn.setText("");
         gbc = new GridBagConstraints();
         gbc.gridx = 2;
         gbc.gridy = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(10, 0, 0, 10);
-        panel4.add(this.viewGithubBtn, gbc);
+        panel4.add(viewGithubBtn, gbc);
         JPanel spacer4 = new JPanel();
         gbc = new GridBagConstraints();
         gbc.gridx = 1;

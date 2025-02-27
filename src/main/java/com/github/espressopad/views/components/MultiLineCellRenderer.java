@@ -12,8 +12,9 @@ public class MultiLineCellRenderer extends JTextArea implements TableCellRendere
     }
 
     @Override
-    public Component getTableCellRendererComponent
-            (JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+    public Component getTableCellRendererComponent(
+            JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column
+    ) {
         this.setText(value.toString());
         if (isSelected) {
             this.setForeground(table.getSelectionForeground());

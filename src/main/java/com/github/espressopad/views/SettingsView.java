@@ -60,17 +60,13 @@ public class SettingsView {
                     "eclipse.xml", "idea.xml", "vs.xml"
             }[k], v -> this.textEditorThemeList[v]));
     private PlaceHolderTextField importText;
-    private JButton addImportBtn;
     private JList<String> importList;
     private JButton removeImportBtn;
-    private JButton saveImportBtn;
     private JSpinner fontSizeSpinner;
     private JComboBox<Font> fontComboBox;
     private JComboBox<UIManager.LookAndFeelInfo> lafComboBox;
     private JComboBox<String> textEditorThemeComboBox;
-    private JButton saveAppearanceButton;
     private final List<TextEditor> textEditors;
-    private SpinnerModel fontSizeModel;
     private final DefaultListModel<String> searchResultsModel = new DefaultListModel<>();
     private final DefaultListModel<String> installedArtifactModel = new DefaultListModel<>();
     private final DefaultListModel<String> importsModel = new DefaultListModel<>();
@@ -107,8 +103,8 @@ public class SettingsView {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(new JLabel(this.resourceBundle.getString("editor.font.size")), gbc);
         gbc.gridx = 1;
-        this.fontSizeModel = new SpinnerNumberModel(font.getSize(), 8, 36, 1);
-        this.fontSizeSpinner = new JSpinner(this.fontSizeModel);
+        SpinnerModel fontSizeModel = new SpinnerNumberModel(font.getSize(), 8, 36, 1);
+        this.fontSizeSpinner = new JSpinner(fontSizeModel);
         panel.add(this.fontSizeSpinner, gbc);
         gbc.gridx = 0;
         gbc.gridy = 1;
@@ -173,10 +169,10 @@ public class SettingsView {
         }
         panel.add(this.lafComboBox, gbc);
         gbc.gridy = 5;
-        this.saveAppearanceButton = new JButton();
-        this.saveAppearanceButton.setIcon(FontIcon.of(FontAwesomeSolid.SAVE, 15));
-        this.saveAppearanceButton.addActionListener(event -> this.saveAppearanceChanges());
-        panel.add(this.saveAppearanceButton, gbc);
+        JButton saveAppearanceButton = new JButton();
+        saveAppearanceButton.setIcon(FontIcon.of(FontAwesomeSolid.SAVE, 15));
+        saveAppearanceButton.addActionListener(event -> this.saveAppearanceChanges());
+        panel.add(saveAppearanceButton, gbc);
 
         this.view.addTab(this.resourceBundle.getString("appearance"), panel);
     }
@@ -240,7 +236,7 @@ public class SettingsView {
         this.searchDependencyRadio.setText(this.resourceBundle.getString("search.for.dependencies"));
         this.searchDependencyRadio.addActionListener(event -> {
             this.deactivatePickJar();
-            this.activateSearchDependencies();
+            this.setSearchDependenciesState(true);
         });
         GridBagConstraints gbc = new GridBagConstraints();
         Insets defaultInsets = gbc.insets;
@@ -252,7 +248,7 @@ public class SettingsView {
         this.pickJarRadio = new JRadioButton();
         this.pickJarRadio.setText(this.resourceBundle.getString("pick.jar.file"));
         this.pickJarRadio.addActionListener(event -> {
-            this.deactivateSearchDependencies();
+            this.setSearchDependenciesState(false);
             this.activatePickJar();
         });
         gbc.gridx = 0;
@@ -400,14 +396,14 @@ public class SettingsView {
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(this.importText, gbc);
-        this.addImportBtn = new JButton();
-        this.addImportBtn.setIcon(FontIcon.of(FontAwesomeSolid.PLUS, 15));
-        this.addImportBtn.addActionListener(event -> this.addImport(this.importText.getText()));
+        JButton addImportBtn = new JButton();
+        addImportBtn.setIcon(FontIcon.of(FontAwesomeSolid.PLUS, 15));
+        addImportBtn.addActionListener(event -> this.addImport(this.importText.getText()));
         gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.weightx = .1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        panel.add(this.addImportBtn, gbc);
+        panel.add(addImportBtn, gbc);
         this.importsModel.addAll(this.handler.parseImportXml());
         this.importsModel.addListDataListener(new ImportsDataListener());
         this.importList = new JList<>();
@@ -427,15 +423,15 @@ public class SettingsView {
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(this.removeImportBtn, gbc);
-        this.saveImportBtn = new JButton();
-        this.saveImportBtn.setIcon(FontIcon.of(FontAwesomeSolid.SAVE, 15));
-        this.saveImportBtn.addActionListener(event -> this.saveImports());
+        JButton saveImportBtn = new JButton();
+        saveImportBtn.setIcon(FontIcon.of(FontAwesomeSolid.SAVE, 15));
+        saveImportBtn.addActionListener(event -> this.saveImports());
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weighty = 0;
-        panel.add(this.saveImportBtn, gbc);
+        panel.add(saveImportBtn, gbc);
 
         this.view.addTab(this.resourceBundle.getString("manage.imports"), panel);
     }
@@ -506,23 +502,15 @@ public class SettingsView {
         this.searchDependencyRadio.setSelected(false);
     }
 
-    private void deactivateSearchDependencies() {
-        this.groupIDText.setEnabled(false);
-        this.artifactIDText.setEnabled(false);
-        this.extensionText.setEnabled(false);
-        this.classifierText.setEnabled(false);
-        this.versionText.setEnabled(false);
-        this.searchDependencyBtn.setEnabled(false);
-    }
-
-    private void activateSearchDependencies() {
-        this.groupIDText.setEnabled(true);
-        this.artifactIDText.setEnabled(true);
-        this.extensionText.setEnabled(true);
-        this.classifierText.setEnabled(true);
-        this.versionText.setEnabled(true);
-        this.searchDependencyBtn.setEnabled(true);
-        this.pickJarRadio.setSelected(false);
+    private void setSearchDependenciesState(boolean status) {
+        this.groupIDText.setEnabled(status);
+        this.artifactIDText.setEnabled(status);
+        this.extensionText.setEnabled(status);
+        this.classifierText.setEnabled(status);
+        this.versionText.setEnabled(status);
+        this.searchDependencyBtn.setEnabled(status);
+        if (status)
+            this.pickJarRadio.setSelected(false);
     }
 
     private void resolveArtifacts() {
