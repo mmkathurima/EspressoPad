@@ -1,27 +1,24 @@
 package com.github.espressopad.views.components;
 
-import javax.swing.JLabel;
-import javax.swing.JScrollPane;
-import javax.swing.JTree;
+import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.io.File;
+import java.awt.*;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class FileTree extends JTree {
     private final DefaultTreeModel defaultTreeModel;
-    private final File dir;
+    private final Path dir;
 
-    public FileTree(File dir) {
+    public FileTree(Path dir) {
         this.dir = dir;
         this.defaultTreeModel = new DefaultTreeModel(this.addNodes(null, dir));
         this.setLayout(new BorderLayout());
@@ -38,33 +35,35 @@ public class FileTree extends JTree {
     /**
      * Add nodes from under "dir" into curTop. Highly recursive.
      */
-    private DefaultMutableTreeNode addNodes(DefaultMutableTreeNode curTop, File dir) {
-        String curPath = dir.getPath();
-        DefaultMutableTreeNode curDir = new DefaultMutableTreeNode(curPath);
-        // should only be null at root
-        if (curTop != null)
-            curTop.add(curDir);
-        String[] ol = Arrays.stream(Objects.requireNonNullElse(dir.list(), new String[0]))
-                .sorted(String.CASE_INSENSITIVE_ORDER)
-                .toArray(String[]::new);
-        File f;
-        List<String> files = new ArrayList<>();
-        // Make two passes, one for Dirs and one for Files. This is #1.
-        for (String thisObject : ol) {
-            String newPath;
-            if (curPath.equals("."))
-                newPath = thisObject;
-            else
-                newPath = Path.of(curPath, thisObject).toString();
-            if ((f = new File(newPath)).isDirectory())
-                this.addNodes(curDir, f);
-            else
-                files.add(thisObject);
+    private DefaultMutableTreeNode addNodes(DefaultMutableTreeNode curTop, Path dir) {
+        try (Stream<Path> dirList = Files.list(dir)) {
+            Path curPath = dir.getFileName();
+            DefaultMutableTreeNode curDir = new DefaultMutableTreeNode(curPath);
+            // should only be null at root
+            if (curTop != null)
+                curTop.add(curDir);
+            List<Path> ol = dirList.sorted(Path::compareTo)
+                    .collect(Collectors.toList());
+            List<Path> files = new ArrayList<>();
+            // Make two passes, one for Dirs and one for Files. This is #1.
+            for (Path thisObject : ol) {
+                Path newPath;
+                if (curPath.equals(Path.of(".")))
+                    newPath = thisObject;
+                else
+                    newPath = curPath.resolve(thisObject);
+                if (Files.isDirectory(newPath))
+                    this.addNodes(curDir, newPath);
+                else
+                    files.add(thisObject);
+            }
+            // Pass two: for files.
+            for (Path file : files)
+                curDir.add(new DefaultMutableTreeNode(file));
+            return curDir;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        // Pass two: for files.
-        for (String file : files)
-            curDir.add(new DefaultMutableTreeNode(file));
-        return curDir;
     }
 
     @Override
@@ -110,10 +109,9 @@ public class FileTree extends JTree {
                 int row,
                 boolean hasFocus) {
             super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
-            String userObject = String.valueOf(((DefaultMutableTreeNode) value).getUserObject());
-            if (!leaf)
-                this.setText(new File(userObject).getName());
-            this.setToolTipText(userObject);
+            Path userObject = (Path) ((DefaultMutableTreeNode) value).getUserObject();
+            this.setText(String.valueOf(userObject.getFileName()));
+            this.setToolTipText(userObject.toString());
             return this;
         }
     }

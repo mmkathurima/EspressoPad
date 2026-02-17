@@ -3,7 +3,7 @@ package com.github.espressopad.controller;
 import com.github.espressopad.io.ConsoleInputStream;
 import com.github.espressopad.io.ConsoleOutputStream;
 import com.github.espressopad.models.ViewModel;
-import com.github.espressopad.utils.XmlUtilities;
+import com.github.espressopad.utils.SerializationUtilities;
 import com.github.espressopad.views.components.FileTree;
 import com.github.espressopad.views.components.MessageConsole;
 import com.github.espressopad.views.components.TextEditor;
@@ -30,9 +30,9 @@ import javax.swing.tree.TreePath;
 import java.awt.Color;
 import java.awt.Desktop;
 import java.awt.event.MouseEvent;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +45,7 @@ public class EspressoPadController {
     private static final JShell shell = JShell.builder().out(null).in(null).err(null).build();
     private final Logger logger = LoggerFactory.getLogger(EspressoPadController.class);
     private final DefaultCompletionProvider provider = new DefaultCompletionProvider();
-    private final XmlUtilities handler = new XmlUtilities();
+    private final SerializationUtilities handler = new SerializationUtilities();
     private final ResourceBundle resourceBundle = ResourceBundle.getBundle("messages", Locale.getDefault());
 
     public static JShell getShell() {
@@ -53,11 +53,11 @@ public class EspressoPadController {
     }
 
     public void addArtifactsAndImports(JShell shell) {
-        if (this.handler.getArtifactFile().exists()) {
+        if (Files.exists(this.handler.getArtifactFile())) {
             for (String s : this.handler.parseArtifactXml())
                 shell.addToClasspath(s);
         }
-        if (!this.handler.getImportsFile().exists())
+        if (!Files.exists(this.handler.getImportsFile()))
             this.handler.writeImportXml(List.of("java.util.stream.*", "java.util.*", "java.io.*"));
         else shell.eval(this.handler.parseImportXml()
                 .stream()
@@ -167,36 +167,10 @@ public class EspressoPadController {
                     textEditor.getCaretPosition() - lineStartOffsetOfCurrentLine);
             List<SourceCodeAnalysis.Suggestion> suggestions = shell.sourceCodeAnalysis()
                     .completionSuggestions(currentLine, currentLine.length(), new int[1]);
-            /*List<String> completedTokens = new ArrayList<>();
-            for (SourceCodeAnalysis.Suggestion suggestion : suggestions) {
-                String completed = this.completeWord(currentLine, suggestion.continuation());
-                if (currentLine.contains("."))
-                    completedTokens.add(
-                            StringEscapeUtils.unescapeJava(
-                                    currentLine.substring(0, currentLine.lastIndexOf('.') + 1) + completed
-                            )
-                    );
-                else
-                    completedTokens.add(StringEscapeUtils.unescapeJava(completed));
-            }
-            List<SourceCodeAnalysis.Documentation> documentationList = new ArrayList<>();
-            for (String completedToken : completedTokens) {
-                List<SourceCodeAnalysis.Documentation> documentation = shell.sourceCodeAnalysis().documentation(
-                        completedToken, completedToken.length(), true
-                );
-                documentationList.addAll(documentation);
-            }*/
 
             this.provider.clear();
             List<Completion> completions = new ArrayList<>();
-            for (int i = 0; i < suggestions.size(); i++) {
-                SourceCodeAnalysis.Suggestion suggestion = suggestions.get(i);
-                /*SourceCodeAnalysis.Documentation documentation = documentationList.get(i);
-                BasicCompletion basicCompletion = new BasicCompletion(
-                        provider, suggestion.continuation(), documentation.signature(),
-                        HtmlUtilities.convertJavaDoc(documentation.javadoc())
-                );
-                completions.add(basicCompletion);*/
+            for (SourceCodeAnalysis.Suggestion suggestion : suggestions) {
                 completions.add(new BasicCompletion(this.provider, suggestion.continuation()));
             }
             this.provider.addCompletions(completions);
@@ -205,16 +179,7 @@ public class EspressoPadController {
         }
     }
 
-    private String completeWord(String complete, String suggestion) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < suggestion.length(); i++) {
-            if (i >= complete.length() || complete.charAt(i) != suggestion.charAt(i))
-                sb.append(suggestion.charAt(i));
-        }
-        return sb.toString();
-    }
-
-    public File setupTreeMouseListener(FileTree fileTree, MouseEvent event) {
+    public Path setupTreeMouseListener(FileTree fileTree, MouseEvent event) {
         int selRow = fileTree.getRowForLocation(event.getX(), event.getY());
         TreePath selPath = fileTree.getPathForLocation(event.getX(), event.getY());
         if (selRow != -1 && selPath != null) {
@@ -225,25 +190,22 @@ public class EspressoPadController {
             refreshMenuItem.addActionListener(e -> fileTree.refreshTree());
             contextMenu.add(refreshMenuItem);
             if (node.isLeaf()) {
-                File file = Path.of(
-                        String.valueOf(((DefaultMutableTreeNode) node.getParent()).getUserObject()),
-                        String.valueOf(node)
-                ).toFile();
+                Path path = Path.of(String.valueOf(node));
                 if (SwingUtilities.isRightMouseButton(event)) {
                     JMenuItem renameMenuItem = new JMenuItem(this.resourceBundle.getString("rename.file2"));
-                    renameMenuItem.addActionListener(e -> this.renameFile(fileTree, file));
+                    renameMenuItem.addActionListener(e -> this.renameFile(fileTree, path));
                     contextMenu.add(renameMenuItem);
                     JMenuItem deleteMenuItem = new JMenuItem(this.resourceBundle.getString("delete.file2"));
-                    deleteMenuItem.addActionListener(e -> this.deleteFile(fileTree, file));
+                    deleteMenuItem.addActionListener(e -> this.deleteFile(fileTree, path));
                     contextMenu.add(deleteMenuItem);
                     JMenuItem openFileLocationMenuItem = new JMenuItem(this.resourceBundle.getString("open.file.location"));
-                    openFileLocationMenuItem.addActionListener(e -> this.openFileLocation(file));
+                    openFileLocationMenuItem.addActionListener(e -> this.openFileLocation(path));
                     contextMenu.add(openFileLocationMenuItem);
                     contextMenu.show(fileTree, event.getX(), event.getY());
-                } else if (event.getClickCount() == 2) return file;
+                } else if (event.getClickCount() == 2) return path;
             } else if (SwingUtilities.isRightMouseButton(event)) {
                 JMenuItem openFileLocationMenuItem = new JMenuItem(this.resourceBundle.getString("open.file.location"));
-                openFileLocationMenuItem.addActionListener(e -> this.openFileLocation(new File(String.valueOf(node))));
+                openFileLocationMenuItem.addActionListener(e -> this.openFileLocation(Path.of(String.valueOf(node))));
                 contextMenu.add(openFileLocationMenuItem);
                 contextMenu.show(fileTree, event.getX(), event.getY());
             }
@@ -251,39 +213,47 @@ public class EspressoPadController {
         return null;
     }
 
-    private void renameFile(FileTree fileTree, File file) {
+    private void renameFile(FileTree fileTree, Path path) {
         Object newName = JOptionPane.showInputDialog(
                 JOptionPane.getFrameForComponent(fileTree),
-                String.format(this.resourceBundle.getString("rename.s"), file.getName()),
+                String.format(this.resourceBundle.getString("rename.s"), path.getFileName()),
                 this.resourceBundle.getString("rename.file"),
                 JOptionPane.QUESTION_MESSAGE,
                 UIManager.getIcon("OptionPane.questionIcon"),
                 null,
-                file.getName()
+                path.getFileName()
         );
         String s = String.valueOf(newName);
-        if (newName != null && !s.isBlank()) {
-            file.renameTo(file.toPath().getParent().resolve(s).toFile());
-            fileTree.refreshTree();
-        }
-    }
-
-    private void deleteFile(FileTree fileTree, File file) {
-        if (JOptionPane.showConfirmDialog(
-                JOptionPane.getFrameForComponent(fileTree),
-                String.format(this.resourceBundle.getString("delete.file.s"), file.getName()),
-                this.resourceBundle.getString("delete.file"),
-                JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            file.delete();
-            fileTree.refreshTree();
-        }
-    }
-
-    private void openFileLocation(File file) {
         try {
-            if (file.isFile())
-                Desktop.getDesktop().open(new File(file.getParent()));
-            else Desktop.getDesktop().open(file);
+            if (newName != null && !s.isBlank()) {
+                Files.move(path, path.getParent().resolve(s));
+                fileTree.refreshTree();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void deleteFile(FileTree fileTree, Path path) {
+        try {
+            if (JOptionPane.showConfirmDialog(
+                    JOptionPane.getFrameForComponent(fileTree),
+                    String.format(this.resourceBundle.getString("delete.file.s"), path.getFileName()),
+                    this.resourceBundle.getString("delete.file"),
+                    JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                Files.delete(path);
+                fileTree.refreshTree();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void openFileLocation(Path path) {
+        try {
+            if (!Files.isDirectory(path))
+                Desktop.getDesktop().open(path.getParent().toFile());
+            else Desktop.getDesktop().open(path.toFile());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

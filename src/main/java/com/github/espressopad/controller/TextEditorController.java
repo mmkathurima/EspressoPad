@@ -15,16 +15,14 @@ import org.fife.ui.rtextarea.SearchContext;
 import org.fife.ui.rtextarea.SearchEngine;
 import org.fife.ui.rtextarea.SearchResult;
 
-import javax.swing.JFileChooser;
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.BadLocationException;
-import java.awt.Frame;
+import java.awt.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
@@ -165,13 +163,15 @@ public class TextEditorController {
     /**
      * NOTE: Never call this method
      */
-    public File saveFile(ViewModel viewModel) {
+    public Path saveFile(ViewModel viewModel) {
         try {
-            File backingFile = viewModel.getBackingFile();
+            Path backingFile = viewModel.getBackingFile();
             if (backingFile == null)
                 backingFile = this.saveFileAs(viewModel);
             else
-                Files.writeString(backingFile.toPath(), viewModel.getTextEditor().getText());
+                try (BufferedWriter writer = Files.newBufferedWriter(backingFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+                    writer.write(viewModel.getTextEditor().getText());
+                }
             viewModel.getTextEditor().setDirty(false);
             return backingFile;
         } catch (IOException e) {
@@ -182,18 +182,20 @@ public class TextEditorController {
     /**
      * NOTE: Never call this method
      */
-    public File saveFileAs(ViewModel viewModel) {
+    public Path saveFileAs(ViewModel viewModel) {
         try {
             JFileChooser chooser = new JFileChooser();
-            chooser.setCurrentDirectory(Utilities.validateDefaultDirectory());
+            chooser.setCurrentDirectory(Utilities.validateDefaultDirectory().toFile());
             chooser.setFileFilter(new FileNameExtensionFilter(this.resourceBundle.getString("jsh.file"), "jsh"));
             if (chooser.showSaveDialog(viewModel.getTab()) == JFileChooser.APPROVE_OPTION) {
-                File selectedFile = chooser.getSelectedFile();
-                String fileName = String.format("%s.jsh", selectedFile.getName());
-                Path path = Path.of(selectedFile.getParent(), fileName);
-                Files.writeString(path, viewModel.getTextEditor().getText());
+                Path selectedFile = chooser.getSelectedFile().toPath();
+                String fileName = String.format("%s.jsh", selectedFile.getFileName());
+                Path path = selectedFile.getParent().resolve(fileName);
+                try (BufferedWriter writer = Files.newBufferedWriter(selectedFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+                    writer.write(viewModel.getTextEditor().getText());
+                }
                 viewModel.getTextEditor().setDirty(false);
-                return path.toFile();
+                return path;
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

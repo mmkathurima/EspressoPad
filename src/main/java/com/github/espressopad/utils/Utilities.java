@@ -10,7 +10,6 @@ import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
 import java.awt.font.FontRenderContext;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,7 +29,7 @@ public class Utilities {
                 .toArray(Font[]::new);
     }
 
-    public static File validateDefaultDirectory() {
+    public static Path validateDefaultDirectory() {
         Path path = Path.of(FileSystemView.getFileSystemView().getDefaultDirectory().getPath(), "EspressoPad");
         if (!Files.exists(path)) {
             try {
@@ -39,7 +38,7 @@ public class Utilities {
                 throw new RuntimeException(e);
             }
         }
-        return path.toFile();
+        return path;
     }
 
     public static DefaultDockable createDockable(JComponent panel, String title) {

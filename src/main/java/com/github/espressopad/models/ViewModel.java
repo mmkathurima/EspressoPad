@@ -5,14 +5,14 @@ import com.github.espressopad.views.components.TextEditor;
 
 import javax.swing.JTextPane;
 import javax.swing.JPanel;
-import java.io.File;
+import java.nio.file.Path;
 
 public class ViewModel {
     private JPanel tab;
     private TextEditor textEditor;
     private JTextPane resultView;
     private StatusBar statusBar;
-    private File backingFile = null;
+    private Path backingFile = null;
     private String title;
 
     public ViewModel() {
@@ -69,11 +69,11 @@ public class ViewModel {
         this.statusBar = statusBar;
     }
 
-    public File getBackingFile() {
+    public Path getBackingFile() {
         return this.backingFile;
     }
 
-    public void setBackingFile(File backingFile) {
+    public void setBackingFile(Path backingFile) {
         this.backingFile = backingFile;
     }
 

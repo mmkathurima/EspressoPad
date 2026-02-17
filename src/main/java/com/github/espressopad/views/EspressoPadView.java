@@ -12,8 +12,8 @@ import com.github.espressopad.controller.EspressoPadController;
 import com.github.espressopad.controller.TextEditorController;
 import com.github.espressopad.models.SettingsModel;
 import com.github.espressopad.models.ViewModel;
+import com.github.espressopad.utils.SerializationUtilities;
 import com.github.espressopad.utils.Utilities;
-import com.github.espressopad.utils.XmlUtilities;
 import com.github.espressopad.views.components.FileTree;
 import com.github.espressopad.views.components.TextEditor;
 import org.fife.ui.rsyntaxtextarea.Theme;
@@ -31,10 +31,13 @@ import javax.swing.text.Document;
 import javax.swing.text.SimpleAttributeSet;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,7 +53,7 @@ public class EspressoPadView extends JPanel {
     private JMenuItem runMenuItem;
     private final List<ViewModel> viewModels = new ArrayList<>();
     private final TextEditorController editorController = new TextEditorController();
-    private final XmlUtilities handler = new XmlUtilities();
+    private final SerializationUtilities handler = new SerializationUtilities();
     private final JFrame frame;
     private boolean ignore = false;
     private SettingsModel settings;
@@ -96,7 +99,7 @@ public class EspressoPadView extends JPanel {
         this.fileTree.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                File file = EspressoPadView.this.controller.setupTreeMouseListener(EspressoPadView.this.fileTree, e);
+                Path file = EspressoPadView.this.controller.setupTreeMouseListener(EspressoPadView.this.fileTree, e);
                 if (file != null) {
                     EspressoPadView.this.openFile(file);
                     EspressoPadView.this.closeAllDuplicateTabs();
@@ -418,30 +421,32 @@ public class EspressoPadView extends JPanel {
 
     private void openFile() {
         JFileChooser chooser = new JFileChooser();
-        chooser.setCurrentDirectory(Utilities.validateDefaultDirectory());
+        chooser.setCurrentDirectory(Utilities.validateDefaultDirectory().toFile());
         chooser.setFileFilter(new FileNameExtensionFilter(this.resourceBundle.getString("jsh.file"), "jsh"));
         if (chooser.showOpenDialog(this.frame) == JFileChooser.APPROVE_OPTION) {
-            this.openFile(chooser.getSelectedFile());
+            this.openFile(chooser.getSelectedFile().toPath());
             this.closeAllDuplicateTabs();
         }
     }
 
-    private JPanel openFile(File file) {
+    private JPanel openFile(Path file) {
         ViewModel model = new ViewModel();
         try {
             model.setBackingFile(file);
-            model.setTitle(file.getName());
+            model.setTitle(file.getFileName().toString());
             for (ViewModel viewModel : this.viewModels) {
                 if (viewModel.getTitle().equals(model.getTitle()) &&
-                        !file.getPath().equals(viewModel.getBackingFile().getPath())) {
-                    model.setTitle(file.getPath());
+                        !file.equals(viewModel.getBackingFile())) {
+                    model.setTitle(file.toString());
                     break;
                 }
             }
             this.setupTab(model);
             JPanel tab = model.getTab();
             TextEditor textEditor = model.getTextEditor();
-            textEditor.setText(Files.readString(file.toPath()));
+            try (BufferedReader reader = Files.newBufferedReader(file)) {
+                textEditor.setText(reader.lines().collect(Collectors.joining("\n")));
+            }
             this.setupTextEditorAppearance(textEditor);
             this.tabPane.insertTab(model.getTitle(), null, tab, null, this.tabPane.getTabCount() - 1);
             this.tabPane.setSelectedComponent(tab);
@@ -484,11 +489,11 @@ public class EspressoPadView extends JPanel {
             ViewModel currentViewModel = this.getCurrentView();
             Document document = currentViewModel.getResultView().getDocument();
             String resultText = document.getText(0, document.getLength());
-            File savedFile = this.editorController.saveFile(currentViewModel);
+            Path savedFile = this.editorController.saveFile(currentViewModel);
             if (savedFile != null) {
                 this.openFile(savedFile);
                 this.tabPane.removeTabAt(this.viewModels.indexOf(currentViewModel));
-                this.setupClosableTabs(savedFile.getName());
+                this.setupClosableTabs(savedFile.getFileName().toString());
                 this.viewModels.remove(currentViewModel);
                 this.fileTree.refreshTree();
                 this.getCurrentView()
@@ -503,7 +508,7 @@ public class EspressoPadView extends JPanel {
 
     private void saveFileAs() {
         ViewModel currentViewModel = this.getCurrentView();
-        File savedFile = this.editorController.saveFileAs(currentViewModel);
+        Path savedFile = this.editorController.saveFileAs(currentViewModel);
         if (savedFile != null) {
             this.openFile(savedFile);
             this.fileTree.refreshTree();
@@ -590,8 +595,8 @@ public class EspressoPadView extends JPanel {
         checker.clear();
         for (Iterator<ViewModel> iterator = this.viewModels.iterator(); iterator.hasNext(); ) {
             ViewModel viewModel = iterator.next();
-            File backingFile = viewModel.getBackingFile();
-            if (backingFile != null && !checker.add(backingFile.getPath()))
+            Path backingFile = viewModel.getBackingFile();
+            if (backingFile != null && !checker.add(backingFile.toString()))
                 iterator.remove();
         }
         this.tabPane.setSelectedIndex(this.tabPane.indexOfTab(selectedTitle));
@@ -607,19 +612,21 @@ public class EspressoPadView extends JPanel {
                 List<String> unsavedFiles = new ArrayList<>();
                 for (int i = 0; i < this.viewModels.size(); i++) {
                     ViewModel viewModel = this.viewModels.get(i);
-                    File backingFile = viewModel.getBackingFile();
+                    Path backingFile = viewModel.getBackingFile();
                     if (viewModel.getTextEditor().isDirty()) {
                         if (backingFile != null)
-                            unsavedFiles.add(viewModel.getBackingFile().getPath());
+                            unsavedFiles.add(viewModel.getBackingFile().toString());
                         else unsavedFiles.add(this.tabPane.getTitleAt(i));
                     }
                 }
                 switch (new SavePromptDialog(this.frame, unsavedFiles).getResult()) {
                     case JOptionPane.YES_OPTION:
                         for (ViewModel unsavedFile : unsavedViewModels) {
-                            File backingFile = unsavedFile.getBackingFile();
+                            Path backingFile = unsavedFile.getBackingFile();
                             if (backingFile != null)
-                                Files.writeString(backingFile.toPath(), unsavedFile.getTextEditor().getText());
+                                try (BufferedWriter writer = Files.newBufferedWriter(backingFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+                                    writer.write(unsavedFile.getTextEditor().getText());
+                                }
                             else this.editorController.saveFileAs(unsavedFile);
                         }
                         return true;
