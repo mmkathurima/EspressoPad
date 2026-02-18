@@ -217,16 +217,11 @@ public class AboutView {
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(0, 0, 10, 0);
         panel3.add(label8, gbc);
-        HyperlinkLabel label12 = new HyperlinkLabel("Jackson Dataformat XML");
-        url = "https://github.com/FasterXML/jackson-dataformat-xml";
-        label12.setURL(url);
-        label12.setToolTipText(url);
         gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.gridy = 10;
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(0, 0, 10, 0);
-        panel3.add(label12, gbc);
         JPanel panel4 = new JPanel();
         panel4.setLayout(new GridBagLayout());
         this.contentPane.add(panel4, BorderLayout.NORTH);

@@ -179,18 +179,16 @@ public class SettingsView {
     }
 
     private void saveAppearanceChanges() {
-        try {
-            String themeLocation = String.format(
-                    "/org/fife/ui/rsyntaxtextarea/themes/%s",
-                    this.textEditorThemes.entrySet()
-                            .stream()
-                            .filter(kv -> kv.getValue().equals(this.textEditorThemeComboBox.getSelectedItem()))
-                            .map(Map.Entry::getKey)
-                            .findFirst()
-                            .orElse("default.xml")
-            );
-            InputStream in = this.getClass().getResourceAsStream(themeLocation);
-            Theme theme = Theme.load(in);
+        String themeLocation = String.format(
+                "/org/fife/ui/rsyntaxtextarea/themes/%s",
+                this.textEditorThemes.entrySet()
+                        .stream()
+                        .filter(kv -> kv.getValue().equals(this.textEditorThemeComboBox.getSelectedItem()))
+                        .map(Map.Entry::getKey)
+                        .findFirst()
+                        .orElse("default.xml")
+        );
+        try (InputStream in = this.getClass().getResourceAsStream(themeLocation)) {
             Font font = Utilities.deriveFont(
                     null, Font.PLAIN,
                     Integer.parseInt(String.valueOf(this.fontSizeSpinner.getValue())),
@@ -198,6 +196,7 @@ public class SettingsView {
             );
             boolean wordWrap = this.wordWrapCheck.isSelected();
             String laf = ((UIManager.LookAndFeelInfo) this.lafComboBox.getSelectedItem()).getClassName();
+            Theme theme = Theme.load(in);
             SwingUtilities.invokeLater(new Runnable() {
                 @Override
                 public void run() {
@@ -213,8 +212,7 @@ public class SettingsView {
             SwingUtilities.updateComponentTreeUI(JOptionPane.getFrameForComponent(this.textEditors.get(0)));
 
             SettingsModel settings = new SettingsModel();
-            settings.setFont(font.getFontName());
-            settings.setFontSize(font.getSize());
+            settings.setFont(font);
             settings.setTheme(themeLocation);
             settings.setWordWrap(wordWrap);
             settings.setLookAndFeel(laf);

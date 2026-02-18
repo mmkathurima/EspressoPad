@@ -1,28 +1,20 @@
 package com.github.espressopad.models;
 
+import java.awt.*;
 import java.io.Serializable;
 
 public class SettingsModel implements Serializable {
-    private String font;
-    private int fontSize;
+    private Font font;
     private String theme;
     private boolean wordWrap;
     private String lookAndFeel;
 
-    public String getFont() {
+    public Font getFont() {
         return this.font;
     }
 
-    public void setFont(String font) {
+    public void setFont(Font font) {
         this.font = font;
-    }
-
-    public int getFontSize() {
-        return this.fontSize;
-    }
-
-    public void setFontSize(int fontSize) {
-        this.fontSize = fontSize;
     }
 
     public String getTheme() {

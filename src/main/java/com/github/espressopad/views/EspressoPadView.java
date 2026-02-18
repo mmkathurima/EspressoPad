@@ -129,14 +129,14 @@ public class EspressoPadView extends JPanel {
             this.settings = this.handler.parseSettingsXml();
             if (this.settings == null) return;
             String themeLocation = this.settings.getTheme();
-            String font = this.settings.getFont();
-            int fontSize = this.settings.getFontSize();
+            Font font = this.settings.getFont();
             boolean wordWrap = this.settings.isWordWrap();
-            InputStream in = this.getClass().getResourceAsStream(themeLocation);
-            Theme theme = Theme.load(in);
-            theme.apply(textEditor);
-            textEditor.setFont(new Font(font, Font.PLAIN, fontSize));
+            textEditor.setFont(font);
             textEditor.setLineWrap(wordWrap);
+            try (InputStream in = this.getClass().getResourceAsStream(themeLocation)) {
+                Theme theme = Theme.load(in);
+                theme.apply(textEditor);
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
